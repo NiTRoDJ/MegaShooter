@@ -85,6 +85,18 @@ html,body{width:100%;height:100%;background:#060614;overflow:hidden;}
 #achievements h2{font-size:clamp(16px,4.5vw,22px);color:#7af;font-weight:700;margin-bottom:10px;}
 #achievements p{color:#668;font-size:clamp(12px,3vw,14px);text-align:center;max-width:260px;}
 #ach-close{margin-top:16px;padding:9px 24px;border:0.5px solid #446;border-radius:8px;background:transparent;color:#88a;cursor:pointer;font-family:monospace;font-size:13px;}
+#editor-advanced-row{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap;}
+#editor-script-box{display:none;width:min(340px,94vw);margin:8px auto 0;}
+#editor-script{width:100%;min-height:120px;resize:vertical;padding:8px 10px;border-radius:8px;border:1px solid #446;background:#0a0a1a;color:#cfe;font:12px/1.45 monospace;outline:none;}
+#editor-script:focus{border-color:#7af;}
+#editor-help-btn{width:34px;height:34px;border-radius:8px;border:0.5px solid #7af;background:transparent;color:#7af;cursor:pointer;font:700 16px monospace;}
+#editor-syntax-help{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(6,6,20,0.94);z-index:40;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#editor-syntax-help.open{display:flex;}
+#editor-syntax-box{width:min(420px,94vw);margin:0 auto 24px;border:0.5px solid #446;border-radius:12px;background:#0b0b22;padding:16px 16px 14px;color:#aac;font-family:monospace;}
+#editor-syntax-box h3{color:#7af;margin-bottom:10px;font-size:16px;}
+#editor-syntax-box p,#editor-syntax-box li{font-size:12px;line-height:1.55;color:#9ab;}
+#editor-syntax-box code{color:#cfe;background:rgba(122,170,255,0.08);padding:1px 4px;border-radius:4px;}
+#editor-syntax-box pre{background:#070716;border:0.5px solid #334;border-radius:8px;padding:10px;color:#cfe;font-size:11px;overflow-x:auto;margin:8px 0 12px;white-space:pre-wrap;}
 
 /* ADMIN */
 #admin h2{font-size:clamp(16px,4.5vw,22px);color:#fc3;font-weight:700;margin-bottom:14px;}
@@ -150,6 +162,7 @@ html,body{width:100%;height:100%;background:#060614;overflow:hidden;}
     <button class="mbtn locked" id="btn-ach">🏆 Досягнення</button>
     <button class="mbtn locked" id="btn-shop">🛒 Магазин</button>
     <button class="mbtn locked" id="btn-bosses">👾 Боси</button>
+    <button class="mbtn locked" id="btn-editor">✏️ Редактор</button>
     <button class="mbtn enabled" id="btn-settings">⚙️ Налаштування</button>
     <button class="mbtn enabled" id="btn-admin">⚙ Адмін</button>
   </div>
@@ -223,8 +236,8 @@ html,body{width:100%;height:100%;background:#060614;overflow:hidden;}
     <button class="boss-slot" disabled>3</button>
     <button class="boss-slot" disabled>4</button>
     <button class="boss-slot" disabled>5</button>
-    <button class="boss-slot" disabled>6</button>
-    <button class="boss-slot" disabled>7</button>
+    <button class="boss-slot" id="boss-6" disabled>6</button>
+    <button class="boss-slot" id="boss-7" disabled>7</button>
     <button class="boss-slot" disabled>8</button>
     <button class="boss-slot" disabled>9</button>
     <button class="boss-slot" disabled>10</button>
@@ -237,7 +250,9 @@ html,body{width:100%;height:100%;background:#060614;overflow:hidden;}
     15% — 2 гігантські кулі · 15% — мега-лазер<br>
     №3: 6000 HP · нагорода 5000💎 + 2500 XP<br>
     30% — 10 стрілунів · 20% — 3×10 куль по 5 HP<br>
-    50% — фіолетова куля смерті (100 HP)</p>
+    50% — фіолетова куля смерті (100 HP)<br>
+    №7: 140000 HP · нагорода 90000💎 + 20000 XP<br>
+    кожні 15с: 50% — два боси №1 · 50% — бос №3</p>
   <button id="bosses-close">← Назад</button>
 </div>
 
@@ -273,17 +288,213 @@ html,body{width:100%;height:100%;background:#060614;overflow:hidden;}
     <div id="admin-message" aria-live="polite"></div>
   </div>
   <button id="admin-close">← Назад</button>
+  <div id="admin-confirm-area" style="display:none;margin-top:10px;">
+    <div id="admin-confirm-preview" style="color:#aac;font-size:13px;margin-bottom:8px;"></div>
+    <button class="admin-action" id="admin-confirm-level-btn">✅ Підтвердити</button>
+    <button class="admin-action" id="admin-reject-level-btn" style="border-color:#f66;color:#f66;">❌ Відхилити</button>
+    <input id="admin-level-number" type="number" min="1" max="100" placeholder="Номер рівня" style="display:none;margin-top:6px;padding:6px;border-radius:6px;border:1px solid #446;background:#0a0a1a;color:#eef;font-family:monospace;width:120px;">
+    <button class="admin-action" id="admin-publish-btn" style="display:none;">📢 Опублікувати</button>
+  </div>
+</div>
+
+<!-- EDITOR -->
+<div class="overlay" id="editor" style="overflow-y:auto;padding:16px 0;">
+  <h2 id="editor-title" style="color:#7af;font-size:clamp(16px,4vw,22px);margin-bottom:10px;">✏️ Редактор рівнів</h2>
+  <div id="editor-list-view">
+    <div id="editor-slots" style="display:flex;flex-direction:column;gap:8px;width:min(340px,94vw);margin-bottom:12px;"></div>
+    <button class="mbtn enabled" id="editor-new-btn" style="width:min(240px,80vw);">➕ Новий рівень</button>
+    <br><button class="mbtn enabled" id="editor-close" style="width:min(180px,70vw);margin-top:8px;">← Назад</button>
+    <div id="editor-lang-btns" style="display:flex;gap:8px;margin-top:14px;width:min(220px,75vw);">
+      <button class="lbtn" data-edlang="uk">🇺🇦</button>
+      <button class="lbtn" data-edlang="ru">🇷🇺</button>
+      <button class="lbtn" data-edlang="en">🇬🇧</button>
+    </div>
+  </div>
+  <div id="editor-create-view" style="display:none;flex-direction:column;align-items:center;gap:10px;width:min(340px,94vw);">
+    <div id="editor-step-1">
+      <p id="editor-name-label" style="color:#aac;margin-bottom:6px;">Назва рівня:</p>
+      <input id="editor-name-input" maxlength="32" placeholder="Мій рівень" style="padding:8px 12px;border-radius:7px;border:1px solid #446;background:#0a0a1a;color:#eef;font-family:monospace;font-size:14px;width:min(280px,85vw);">
+      <br><br>
+      <p id="editor-diff-label" style="color:#aac;margin-bottom:6px;">Складність (1–10):</p>
+      <input id="editor-diff-input" type="number" min="1" max="10" value="5" style="padding:8px;border-radius:7px;border:1px solid #446;background:#0a0a1a;color:#eef;font-family:monospace;font-size:14px;width:80px;">
+      <br><br>
+      <p id="editor-waves-label" style="color:#aac;margin-bottom:6px;">Кількість хвиль (1–50):</p>
+      <input id="editor-waves-input" type="number" min="1" max="50" value="5" style="padding:8px;border-radius:7px;border:1px solid #446;background:#0a0a1a;color:#eef;font-family:monospace;font-size:14px;width:80px;">
+      <br><br>
+      <button class="mbtn enabled" id="editor-step1-next" style="width:min(200px,70vw);">Далі →</button>
+      <br><button class="mbtn enabled" id="editor-step1-back" style="width:min(180px,70vw);margin-top:6px;">← Назад</button>
+    </div>
+    <div id="editor-step-2" style="display:none;width:100%;">
+      <p id="editor-wave-label" style="color:#7af;font-size:14px;margin-bottom:6px;text-align:center;"></p>
+      <p id="editor-place-hint" style="color:#aac;font-size:12px;text-align:center;margin-bottom:8px;">Натисни на поле щоб розставити монстрів</p>
+      <canvas id="editor-canvas" style="border:1px solid #446;border-radius:8px;touch-action:none;cursor:crosshair;display:block;margin:0 auto;"></canvas>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="stab active" id="editor-type-normal">👾 Звичайний</button>
+        <button class="stab" id="editor-type-golden">👑 Золотий</button>
+        <button class="stab" id="editor-type-erase">🗑️ Стерти</button>
+        <button class="stab" id="editor-grid-toggle">▦ Сітка</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="mbtn enabled" id="editor-prev-wave" style="width:80px;padding:7px 0;">← Хвиля</button>
+        <button class="mbtn enabled" id="editor-next-wave" style="width:80px;padding:7px 0;">Хвиля →</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="mbtn enabled" id="editor-test-btn" style="width:min(140px,44vw);">▶ Тестувати</button>
+        <button class="mbtn enabled" id="editor-finish-btn" style="width:min(140px,44vw);border-color:#4f4;color:#4f4;">✅ Готово</button>
+      </div>
+      <div id="editor-advanced-row">
+        <button class="mbtn enabled" id="editor-advanced-btn" style="width:min(220px,70vw);">🧩 Розширений режим</button>
+        <button id="editor-help-btn" title="Синтаксис">?</button>
+      </div>
+      <div id="editor-script-box">
+        <textarea id="editor-script" spellcheck="false" placeholder="# reward = 200&#10;# spawnboss(wave:2, num:1)&#10;# dialog(wave:1, &quot;Обережно!&quot;, 3)&#10;# customboss(wave:2, visual:1)&#10;# attack(chance:50, type:0, c:5, d:7)"></textarea>
+      </div>
+    </div>
+  </div>
+  <!-- Finish screen -->
+  <div id="editor-finish-view" style="display:none;flex-direction:column;align-items:center;gap:10px;width:min(340px,94vw);">
+    <p id="editor-saved-title" style="color:#7af;font-size:16px;font-weight:700;">🎉 Рівень збережено!</p>
+    <p id="editor-finish-info" style="color:#aac;font-size:13px;text-align:center;"></p>
+    <button class="mbtn enabled" id="editor-test-again-btn" style="width:min(240px,80vw);border-color:#4f4;color:#4f4;">▶ Тестувати рівень</button>
+    <button class="mbtn enabled" id="editor-edit-back-btn" style="width:min(240px,80vw);">✏️ Редагувати</button>
+    <button class="mbtn enabled" id="editor-menu-back-btn" style="width:min(240px,80vw);">🏠 Меню</button>
+  </div>
+</div>
+
+<div id="editor-syntax-help">
+  <div id="editor-syntax-box">
+    <h3>❓ Синтаксис розширеного режиму</h3>
+    <p>Пиши команди схоже на Python. Один рядок — одна команда. Рядки з <code>#</code> — коментарі.</p>
+    <p><b style="color:#ddf">Нагорода за хвилю</b></p>
+    <pre>reward = 200
+reward(wave:3) = 500</pre>
+    <ul>
+      <li><code>reward = N</code> — токени за <b>кожну</b> хвилю</li>
+      <li><code>reward(wave:W) = N</code> — нагорода лише за хвилю W</li>
+      <li>Максимум <b>500</b> токенів на одну хвилю</li>
+      <li>Якщо більше — під час тесту: <code>Count Error: The Reward is too high</code></li>
+    </ul>
+    <p><b style="color:#ddf">Вставити боса</b></p>
+    <pre>spawnboss(wave:2, num:1)
+spawnboss(wave:3, num:1, num:2)</pre>
+    <ul>
+      <li><code>wave</code> — номер хвилі (1, 2, 3...)</li>
+      <li><code>num</code> — номер боса (зараз 1–7)</li>
+      <li>Два боси одразу: <code>spawnboss(wave:3, num:1, num:2)</code></li>
+      <li>Власного боса задай командами customboss + attack</li>
+    </ul>
+    <p><b style="color:#ddf">Власний бос</b></p>
+    <pre>customboss(wave:2, visual:1, hp:2000, name:"Guard")
+attack(chance:40, type:0, c:5, d:7)
+attack(chance:30, type:1, c:2, d:30)
+attack(chance:20, type:2, c:3, t:0)
+attack(chance:10, type:3, c:1)</pre>
+    <ul>
+      <li>visual / vialuse — вигляд боса 1–7</li>
+      <li>type: 0 кулі, 1 гігантські кулі, 2 монстри, 3 кулі смерті</li>
+      <li>для type 2: t=0 стрілун, t=1 золотий</li>
+      <li>можна писати блок custom("BOSSES"):{ ... }</li>
+    </ul>
+    <p><b style="color:#ddf">Діалог перед хвилею</b></p>
+    <pre>dialog(wave:1, "Обережно, бос!", 3)</pre>
+    <ul>
+      <li>Перший аргумент після wave — текст у лапках</li>
+      <li>Останнє число — час у секундах</li>
+    </ul>
+    <button class="mbtn enabled" id="editor-help-close" style="width:100%;margin-top:8px;">← Назад</button>
+  </div>
 </div>
 
 <script>
 const cv = document.getElementById('gc');
 const cx = cv.getContext('2d');
-const VERSION = 'v0.9.2 Beta';
+const VERSION = 'v1.2';
 const LANGS={
 uk:{sub:'Вертикальний шутер',play:'▶ Грати',ach:'🏆 Досягнення',shop:'🛒 Магазин',bosses:'👾 Боси',events:'🎯 Події',admin:'⚙ Адмін',lock5:'Відкриється на XP-рівні 5',lock3:'Відкриється на XP-рівні 3',lock10:'Відкриється на XP-рівні 10',lock7:'Відкриється на XP-рівні 7',level:'Рівень',next:'Наст. рівень',max:'Макс. рівень!',tokens:'Токени',back:'← Назад',gameover:'КІНЕЦЬ ГРИ',returnMenu:'Повернутись у меню',shopTitle:'🛒 Магазин',ships:'✈ Літак',helpers:'🤖 Помічники',items:'⚔ Предмети',bossesTitle:'👾 Боси',bossInfo:'Оберіть боса. Відкриті боси підсвічені.',eventsTitle:'🎯 Події',survivalBtn:'⚡ Виживання',survivalDesc:'1HP. Падають вогняні мечі та кулі. Кожну секунду +50💎. Швидкість зростає.',achTitle:'🏆 Досягнення',achInfo:'Тут будуть досягнення.<br>Незабаром...',adminTitle:'⚙ Адмін-панель',password:'Пароль',enterPassword:'Введіть пароль',login:'Увійти',giveTokens:'Видати токенів',give:'Видати 💎',setLevel:'Встановити рівень XP',set:'Встановити рівень',wrong:'Неправильний пароль.',allowed:'Доступ дозволено.',enterInt:'Введіть ціле число більше нуля.',given:'Видано 💎',levelRange:'Введіть рівень від 1 до 250.',setLevelMsg:'Встановлено XP-рівень',chosen:'✓ Обраний',choose:'Обрати',buy:'Купити за 💎',need:'Потрібно 💎',free:'Безкоштовно',bossBack:'Переможіть попереднього боса',survived:'Вижито секунд',settings:'Налаштування',controls:'Керування',touch:'Дотики',joystick:'Джойстик'},
 ru:{sub:'Вертикальный шутер',play:'▶ Играть',ach:'🏆 Достижения',shop:'🛒 Магазин',bosses:'👾 Боссы',events:'🎯 События',admin:'⚙ Админ',lock5:'Откроется на XP-уровне 5',lock3:'Откроется на XP-уровне 3',lock10:'Откроется на XP-уровне 10',lock7:'Откроется на XP-уровне 7',level:'Уровень',next:'След. уровень',max:'Макс. уровень!',tokens:'Токены',back:'← Назад',gameover:'КОНЕЦ ИГРЫ',returnMenu:'Вернуться в меню',shopTitle:'🛒 Магазин',ships:'✈ Самолёт',helpers:'🤖 Помощники',items:'⚔ Предметы',bossesTitle:'👾 Боссы',bossInfo:'Выберите босса. Открытые боссы подсвечены.',eventsTitle:'🎯 События',survivalBtn:'⚡ Выживание',survivalDesc:'1HP. Падают огненные мечи и пули. Каждую секунду +50💎. Скорость растёт.',achTitle:'🏆 Достижения',achInfo:'Здесь будут достижения.<br>Скоро...',adminTitle:'⚙ Админ-панель',password:'Пароль',enterPassword:'Введите пароль',login:'Войти',giveTokens:'Выдать токенов',give:'Выдать 💎',setLevel:'Установить уровень XP',set:'Установить уровень',wrong:'Неправильный пароль.',allowed:'Доступ разрешён.',enterInt:'Введите целое число больше нуля.',given:'Выдано 💎',levelRange:'Введите уровень от 1 до 250.',setLevelMsg:'Установлен XP-уровень',chosen:'✓ Выбран',choose:'Выбрать',buy:'Купить за 💎',need:'Нужно 💎',free:'Бесплатно',bossBack:'Победите предыдущего босса',survived:'Выжито секунд',settings:'Настройки',controls:'Управление',touch:'Касания',joystick:'Джойстик'},
 en:{sub:'Vertical shooter',play:'▶ Play',ach:'🏆 Achievements',shop:'🛒 Shop',bosses:'👾 Bosses',events:'🎯 Events',admin:'⚙ Admin',lock5:'Unlocks at XP level 5',lock3:'Unlocks at XP level 3',lock10:'Unlocks at XP level 10',lock7:'Unlocks at XP level 7',level:'Level',next:'Next level',max:'Max level!',tokens:'Tokens',back:'← Back',gameover:'GAME OVER',returnMenu:'Return to menu',shopTitle:'🛒 Shop',ships:'✈ Ship',helpers:'🤖 Helpers',items:'⚔ Items',bossesTitle:'👾 Bosses',bossInfo:'Choose a boss. Unlocked bosses are highlighted.',eventsTitle:'🎯 Events',survivalBtn:'⚡ Survival',survivalDesc:'1HP. Fire swords and bullets rain down. +50💎 per second. Speed increases.',achTitle:'🏆 Achievements',achInfo:'Achievements will be here.<br>Coming soon...',adminTitle:'⚙ Admin Panel',password:'Password',enterPassword:'Enter password',login:'Log in',giveTokens:'Give tokens',give:'Give 💎',setLevel:'Set XP level',set:'Set level',wrong:'Wrong password.',allowed:'Access granted.',enterInt:'Enter an integer greater than zero.',given:'Given 💎',levelRange:'Enter a level from 1 to 250.',setLevelMsg:'Set XP level',chosen:'✓ Selected',choose:'Select',buy:'Buy for 💎',need:'Need 💎',free:'Free',bossBack:'Defeat the previous boss',survived:'Seconds survived',settings:'Settings',controls:'Controls',touch:'Touch',joystick:'Joystick'}
 };
+Object.assign(LANGS.uk,{
+  editor:'✏️ Редактор',editorTitle:'✏️ Редактор рівнів',editorNew:'➕ Новий рівень',editorMax:'Максимум {n} рівнів',
+  editorName:'Назва рівня:',editorNamePh:'Мій рівень',editorDiff:'Складність (1–10):',editorWaves:'Кількість хвиль (1–50):',
+  editorNext:'Далі →',editorPlace:'Натисни на поле щоб розставити монстрів',editorNormal:'👾 Звичайний',editorGolden:'👑 Золотий',
+  editorErase:'🗑️ Стерти',editorGridOn:'▦ Сітка вкл',editorGridOff:'▦ Сітка викл',editorPrevWave:'← Хвиля',editorNextWave:'Хвиля →',
+  editorTest:'▶ Тестувати',editorDone:'✅ Готово',editorAdvanced:'🧩 Розширений режим',editorSaved:'🎉 Рівень збережено!',
+  editorTestAgain:'▶ Тестувати рівень',editorEdit:'✏️ Редагувати',editorMenu:'🏠 Меню',editorWave:'Хвиля {a} / {b}',
+  editorPlayerZone:'Зона гравця',editorNeedName:'Введіть назву рівня!',editorNeedContent:'Розставте монстрів або додайте spawnboss у скрипт.',
+  editorNeedLevel:'Спочатку створіть рівень.',editorDelete:'Видалити рівень',editorDiffShort:'складн.',editorWavesShort:'хвиль',
+  editorToEditor:'← До редактора',editorCleared:'пройдено!',levelCleared:'🎉 РІВЕНЬ ПРОЙДЕНО',lockLv:'Відкриється на рівні {n}',
+  pause:'ПАУЗА',pauseHint:'Натисніть Ⅱ або P, щоб продовжити',pauseExit:'⬅ Вийти в меню',
+  syntaxTitle:'❓ Синтаксис розширеного режиму',syntaxHelp:'Синтаксис',
+  syntaxIntro:'Пиши команди схоже на Python. Один рядок — одна команда. Рядки з # — коментарі.',
+  syntaxReward:'Нагорода за хвилю',syntaxBoss:'Вставити боса',syntaxDialog:'Діалог перед хвилею',
+  syntaxR1:'reward = N — токени за кожну хвилю',syntaxR2:'reward(wave:W) = N — нагорода лише за хвилю W',
+  syntaxR3:'Максимум 500 токенів на одну хвилю',syntaxR4:'Якщо більше — під час тесту: Count Error: The Reward is too high',
+  syntaxB1:'wave — номер хвилі (1, 2, 3...)',syntaxB2:'num — номер боса (зараз 1–7)',syntaxB3:'Два боси одразу: spawnboss(wave:3, num:1, num:2)',syntaxB4:'Власного боса задай командами customboss + attack',
+  syntaxCustom:'Власний бос',
+  syntaxC1:'customboss(wave:W, visual:N) — вигляд боса 1–7 на хвилі W',
+  syntaxC2:'attack(chance:%, type:T, c:кількість, d:урон, t:тип монстра)',
+  syntaxC3:'type: 0 кулі, 1 гігантські кулі, 2 монстри, 3 кулі смерті',
+  syntaxC4:'для type 2: t=0 стрілун, t=1 золотий монстр',
+  syntaxC5:'Можна також писати блок custom("BOSSES"):{ visual(num:1) ... }',
+  syntaxC6:'Можна додати hp:N, name:"Назва", interval:кадри',
+  syntaxD1:'Текст має бути в лапках',syntaxD2:'Останнє число — час у секундах',
+  score:'Рахунок',earned:'Зароблено',xpEarned:'XP зароблено'
+});
+Object.assign(LANGS.ru,{
+  editor:'✏️ Редактор',editorTitle:'✏️ Редактор уровней',editorNew:'➕ Новый уровень',editorMax:'Максимум {n} уровней',
+  editorName:'Название уровня:',editorNamePh:'Мой уровень',editorDiff:'Сложность (1–10):',editorWaves:'Количество волн (1–50):',
+  editorNext:'Далее →',editorPlace:'Нажми на поле, чтобы расставить монстров',editorNormal:'👾 Обычный',editorGolden:'👑 Золотой',
+  editorErase:'🗑️ Стереть',editorGridOn:'▦ Сетка вкл',editorGridOff:'▦ Сетка выкл',editorPrevWave:'← Волна',editorNextWave:'Волна →',
+  editorTest:'▶ Тестировать',editorDone:'✅ Готово',editorAdvanced:'🧩 Расширенный режим',editorSaved:'🎉 Уровень сохранён!',
+  editorTestAgain:'▶ Тестировать уровень',editorEdit:'✏️ Редактировать',editorMenu:'🏠 Меню',editorWave:'Волна {a} / {b}',
+  editorPlayerZone:'Зона игрока',editorNeedName:'Введите название уровня!',editorNeedContent:'Расставьте монстров или добавьте spawnboss в скрипт.',
+  editorNeedLevel:'Сначала создайте уровень.',editorDelete:'Удалить уровень',editorDiffShort:'сложн.',editorWavesShort:'волн',
+  editorToEditor:'← К редактору',editorCleared:'пройден!',levelCleared:'🎉 УРОВЕНЬ ПРОЙДЕН',lockLv:'Откроется на уровне {n}',
+  pause:'ПАУЗА',pauseHint:'Нажмите Ⅱ или P, чтобы продолжить',pauseExit:'⬅ Выйти в меню',
+  syntaxTitle:'❓ Синтаксис расширенного режима',syntaxHelp:'Синтаксис',
+  syntaxIntro:'Пиши команды похоже на Python. Одна строка — одна команда. Строки с # — комментарии.',
+  syntaxReward:'Награда за волну',syntaxBoss:'Вставить босса',syntaxDialog:'Диалог перед волной',
+  syntaxR1:'reward = N — токены за каждую волну',syntaxR2:'reward(wave:W) = N — награда только за волну W',
+  syntaxR3:'Максимум 500 токенов за одну волну',syntaxR4:'Если больше — во время теста: Count Error: The Reward is too high',
+  syntaxB1:'wave — номер волны (1, 2, 3...)',syntaxB2:'num — номер босса (сейчас 1–7)',syntaxB3:'Два босса сразу: spawnboss(wave:3, num:1, num:2)',syntaxB4:'Своего босса задай командами customboss + attack',
+  syntaxCustom:'Свой босс',
+  syntaxC1:'customboss(wave:W, visual:N) — внешность босса 1–7 на волне W',
+  syntaxC2:'attack(chance:%, type:T, c:количество, d:урон, t:тип монстра)',
+  syntaxC3:'type: 0 пули, 1 гигантские пули, 2 монстры, 3 пули смерти',
+  syntaxC4:'для type 2: t=0 стрелок, t=1 золотой монстр',
+  syntaxC5:'Можно также писать блок custom("BOSSES"):{ visual(num:1) ... }',
+  syntaxC6:'Можно добавить hp:N, name:"Имя", interval:кадры',
+  syntaxD1:'Текст должен быть в кавычках',syntaxD2:'Последнее число — время в секундах',
+  score:'Счёт',earned:'Заработано',xpEarned:'XP получено'
+});
+Object.assign(LANGS.en,{
+  editor:'✏️ Editor',editorTitle:'✏️ Level editor',editorNew:'➕ New level',editorMax:'Maximum {n} levels',
+  editorName:'Level name:',editorNamePh:'My level',editorDiff:'Difficulty (1–10):',editorWaves:'Number of waves (1–50):',
+  editorNext:'Next →',editorPlace:'Tap the field to place monsters',editorNormal:'👾 Normal',editorGolden:'👑 Golden',
+  editorErase:'🗑️ Erase',editorGridOn:'▦ Grid on',editorGridOff:'▦ Grid off',editorPrevWave:'← Wave',editorNextWave:'Wave →',
+  editorTest:'▶ Test',editorDone:'✅ Done',editorAdvanced:'🧩 Advanced mode',editorSaved:'🎉 Level saved!',
+  editorTestAgain:'▶ Test level',editorEdit:'✏️ Edit',editorMenu:'🏠 Menu',editorWave:'Wave {a} / {b}',
+  editorPlayerZone:'Player zone',editorNeedName:'Enter a level name!',editorNeedContent:'Place monsters or add spawnboss in the script.',
+  editorNeedLevel:'Create a level first.',editorDelete:'Delete level',editorDiffShort:'diff.',editorWavesShort:'waves',
+  editorToEditor:'← To editor',editorCleared:'cleared!',levelCleared:'🎉 LEVEL CLEARED',lockLv:'Unlocks at level {n}',
+  pause:'PAUSE',pauseHint:'Press Ⅱ or P to continue',pauseExit:'⬅ Exit to menu',
+  syntaxTitle:'❓ Advanced mode syntax',syntaxHelp:'Syntax',
+  syntaxIntro:'Write commands like Python. One line is one command. Lines with # are comments.',
+  syntaxReward:'Wave reward',syntaxBoss:'Insert a boss',syntaxDialog:'Dialogue before a wave',
+  syntaxR1:'reward = N — tokens for every wave',syntaxR2:'reward(wave:W) = N — reward for wave W only',
+  syntaxR3:'Maximum 500 tokens per wave',syntaxR4:'If higher — during test: Count Error: The Reward is too high',
+  syntaxB1:'wave — wave number (1, 2, 3...)',syntaxB2:'num — boss number (currently 1–7)',syntaxB3:'Two bosses at once: spawnboss(wave:3, num:1, num:2)',syntaxB4:'Define a custom boss with customboss + attack',
+  syntaxCustom:'Custom boss',
+  syntaxC1:'customboss(wave:W, visual:N) — boss look 1–7 on wave W',
+  syntaxC2:'attack(chance:%, type:T, c:count, d:damage, t:monster type)',
+  syntaxC3:'type: 0 bullets, 1 giant bullets, 2 monsters, 3 death bullets',
+  syntaxC4:'for type 2: t=0 shooter, t=1 golden monster',
+  syntaxC5:'You can also write a custom("BOSSES"):{ visual(num:1) ... } block',
+  syntaxC6:'Optional: hp:N, name:"Name", interval:frames',
+  syntaxD1:'The text must be in quotes',syntaxD2:'The last number is time in seconds',
+  score:'Score',earned:'Earned',xpEarned:'XP earned'
+});
 let lang=localStorage.getItem('ms_lang')||'uk';
 let controlMode=localStorage.getItem('ms_control')||'touch';
 if(controlMode!=='touch'&&controlMode!=='joystick')controlMode='touch';
@@ -299,7 +510,89 @@ function applyLang(){
   document.getElementById('settings-close').textContent='← '+t('back');
 
  const set=(id,txt,html=false)=>{const e=document.getElementById(id);if(e){if(html)e.innerHTML=txt;else e.textContent=txt;}};
- set('menu-sub',t('sub'));set('btn-settings',t('settings')||'⚙️ Налаштування');set('btn-admin',t('admin'));set('gameover-title',t('gameover'));set('go-btn',t('returnMenu'));set('shop-title',t('shopTitle'));set('shop-close',t('back'));set('tab-ships',t('ships'));set('tab-helpers',t('helpers'));set('tab-items',t('items'));set('bosses-title',t('bossesTitle'));set('bosses-info',t('bossInfo'));set('bosses-close',t('back'));set('events-title',t('eventsTitle'));set('survival-btn-label',t('survivalBtn'));set('survival-desc-label',t('survivalDesc'));set('btn-survival',t('survivalBtn'));set('events-close',t('back'));set('ach-title',t('achTitle'));set('ach-info',t('achInfo'),true);set('ach-close',t('back'));set('admin-title',t('adminTitle'));set('admin-password-label',t('password'));set('admin-login',t('login'));set('admin-amount-label',t('giveTokens'));set('admin-grant',t('give'));set('admin-level-label',t('setLevel'));set('admin-set-level',t('set'));set('admin-close',t('back'));document.getElementById('admin-password').placeholder=t('enterPassword');document.querySelectorAll('.lbtn').forEach(b=>b.classList.toggle('active',b.id==='lang-'+lang));updateMenuXP();if(document.getElementById('shop').classList.contains('active'))renderShopGrid();
+ set('menu-sub',t('sub'));set('btn-settings',t('settings')||'⚙️ Налаштування');set('btn-admin',t('admin'));set('gameover-title',t('gameover'));set('go-btn',t('returnMenu'));set('shop-title',t('shopTitle'));set('shop-close',t('back'));set('tab-ships',t('ships'));set('tab-helpers',t('helpers'));set('tab-items',t('items'));set('bosses-title',t('bossesTitle'));set('bosses-info',t('bossInfo'));set('bosses-close',t('back'));set('events-title',t('eventsTitle'));set('survival-btn-label',t('survivalBtn'));set('survival-desc-label',t('survivalDesc'));set('btn-survival',t('survivalBtn'));set('events-close',t('back'));set('ach-title',t('achTitle'));set('ach-info',t('achInfo'),true);set('ach-close',t('back'));set('admin-title',t('adminTitle'));set('admin-password-label',t('password'));set('admin-login',t('login'));set('admin-amount-label',t('giveTokens'));set('admin-grant',t('give'));set('admin-level-label',t('setLevel'));set('admin-set-level',t('set'));set('admin-close',t('back'));document.getElementById('admin-password').placeholder=t('enterPassword');document.querySelectorAll('.lbtn').forEach(b=>b.classList.toggle('active',b.id==='lang-'+lang||b.getAttribute('data-edlang')===lang));updateMenuXP();applyEditorLang();if(document.getElementById('shop').classList.contains('active'))renderShopGrid();
+}
+function applyEditorLang(){
+  const set=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt;};
+  set('editor-title',t('editorTitle'));
+  set('editor-close',t('back'));
+  set('editor-name-label',t('editorName'));
+  set('editor-diff-label',t('editorDiff'));
+  set('editor-waves-label',t('editorWaves'));
+  set('editor-step1-next',t('editorNext'));
+  set('editor-step1-back',t('back'));
+  set('editor-place-hint',t('editorPlace'));
+  set('editor-type-normal',t('editorNormal'));
+  set('editor-type-golden',t('editorGolden'));
+  set('editor-type-erase',t('editorErase'));
+  set('editor-prev-wave',t('editorPrevWave'));
+  set('editor-next-wave',t('editorNextWave'));
+  set('editor-test-btn',t('editorTest'));
+  set('editor-finish-btn',t('editorDone'));
+  set('editor-advanced-btn',t('editorAdvanced'));
+  set('editor-saved-title',t('editorSaved'));
+  set('editor-test-again-btn',t('editorTestAgain'));
+  set('editor-edit-back-btn',t('editorEdit'));
+  set('editor-menu-back-btn',t('editorMenu'));
+  const nameIn=document.getElementById('editor-name-input');
+  if(nameIn) nameIn.placeholder=t('editorNamePh');
+  const helpBtn=document.getElementById('editor-help-btn');
+  if(helpBtn) helpBtn.title=t('syntaxHelp');
+  const box=document.getElementById('editor-syntax-box');
+  if(box){
+    box.innerHTML=`<h3>${t('syntaxTitle')}</h3>
+      <p>${t('syntaxIntro')}</p>
+      <p><b style="color:#ddf">${t('syntaxReward')}</b></p>
+      <pre>reward = 200\nreward(wave:3) = 500</pre>
+      <ul>
+        <li>${t('syntaxR1')}</li>
+        <li>${t('syntaxR2')}</li>
+        <li>${t('syntaxR3')}</li>
+        <li>${t('syntaxR4')}</li>
+      </ul>
+      <p><b style="color:#ddf">${t('syntaxBoss')}</b></p>
+      <pre>spawnboss(wave:2, num:1)
+spawnboss(wave:3, num:1, num:2)</pre>
+      <ul>
+        <li>${t('syntaxB1')}</li>
+        <li>${t('syntaxB2')}</li>
+        <li>${t('syntaxB3')}</li>
+        <li>${t('syntaxB4')}</li>
+      </ul>
+      <p><b style="color:#ddf">${t('syntaxDialog')}</b></p>
+      <pre>dialog(wave:1, "Hello!", 3)</pre>
+      <ul>
+        <li>${t('syntaxD1')}</li>
+        <li>${t('syntaxD2')}</li>
+      </ul>
+      <p><b style="color:#ddf">${t('syntaxCustom')}</b></p>
+      <pre>customboss(wave:2, visual:1, hp:2000, name:"Guard")
+attack(chance:40, type:0, c:5, d:7)
+attack(chance:30, type:1, c:2, d:30)
+attack(chance:20, type:2, c:3, t:0)
+attack(chance:10, type:3, c:1)</pre>
+      <ul>
+        <li>${t('syntaxC1')}</li>
+        <li>${t('syntaxC2')}</li>
+        <li>${t('syntaxC3')}</li>
+        <li>${t('syntaxC4')}</li>
+        <li>${t('syntaxC5')}</li>
+        <li>${t('syntaxC6')}</li>
+      </ul>
+      <button class="mbtn enabled" id="editor-help-close" style="width:100%;margin-top:8px;">${t('back')}</button>`;
+    const hc=document.getElementById('editor-help-close');
+    if(hc) hc.onclick=()=>document.getElementById('editor-syntax-help').classList.remove('open');
+  }
+  if(typeof syncEditorGridBtn==='function') syncEditorGridBtn();
+  if(typeof editorCurrent!=='undefined'&&editorCurrent&&typeof updateEditorWaveLabel==='function') updateEditorWaveLabel();
+  const ed=document.getElementById('editor');
+  const list=document.getElementById('editor-list-view');
+  const createView=document.getElementById('editor-create-view');
+  const finishView=document.getElementById('editor-finish-view');
+  const isOnList=ed&&list&&ed.classList.contains('active')&&list.style.display!=='none';
+  const isOnCreate=createView&&createView.style.display!=='none';
+  const isOnFinish=finishView&&finishView.style.display!=='none';
+  if(isOnList&&!isOnCreate&&!isOnFinish&&typeof showEditorList==='function') showEditorList();
 }
 
 
@@ -490,6 +783,8 @@ const ITEMS={
 
 // ── Game state ──
 let gameActive=false, menuDrawActive=false, paused=false, adminUnlocked=false, gameRunId=0;
+let customLevelMode=false, customLevel=null, customWaveIdx=0, customWaveDelay=0, customLevelReturnTo='edit';
+let customDialog=null, customDialogQueue=[], customWaveRewarded=false;
 let score=0, sessionXP=0, sessionTokens=0;
 let playerHP=50, playerMaxHP=50;
 let mx,my, frame=0, waveTimer=0, waveCount=1;
@@ -504,6 +799,8 @@ const LASER_DURATION=60, LASER_COOLDOWN=60, LASER_TICK=18; // laser active 1s, c
 let laserDmgTimer=0;
 // Boss state
 let bossMode=false, boss=null, bossAttackTimer=0;
+let activeBosses=[];
+let attackingBoss=null;
 let bossLasers=[], bossLaserTimer=0, bossLaserDmgTimer=0;
 let bossNextIsLaser=false, bossWarnTimer=0;
 let blackHole=null; // {x,y,timer,radius}
@@ -517,21 +814,25 @@ function showGameButtons(){ /* no-op, exit is in pause menu now */ }
 function showMenuButtons(){ document.getElementById('pause-btn').style.display='none'; }
 
 function showOnly(id){
-  ['menu','gameover','shop','bosses','achievements','admin','settings','events'].forEach(n=>{
+  ['menu','gameover','shop','bosses','achievements','admin','settings','events','editor'].forEach(n=>{
     document.getElementById(n).classList.toggle('active',n===id);
   });
   document.getElementById('pause-btn').style.display=id==='gameover'?'none':
     (gameActive?'block':'none');
+  // Disable canvas pointer events when an overlay is shown so touches
+  // reach overlay buttons reliably on all mobile browsers.
+  cv.style.pointerEvents=id===null?'auto':'none';
 }
 function hideAll(){
-  ['menu','gameover','shop','bosses','achievements','admin','settings','events'].forEach(n=>document.getElementById(n).classList.remove('active'));
+  ['menu','gameover','shop','bosses','achievements','admin','settings','events','editor'].forEach(n=>document.getElementById(n).classList.remove('active'));
+  cv.style.pointerEvents='auto';
 }
 
 function renderBossGrid(){
   const slots=[...document.querySelectorAll('#boss-grid .boss-slot')];
   slots.forEach((slot,index)=>{
     const id=index+1;
-    const available=id===1||(id===2&&defeatedBosses.includes(1))||(id===3&&defeatedBosses.includes(2))||(id===4&&defeatedBosses.includes(3))||(id===5&&defeatedBosses.includes(4))||(id===6&&defeatedBosses.includes(5));
+    const available=id===1||(id===2&&defeatedBosses.includes(1))||(id===3&&defeatedBosses.includes(2))||(id===4&&defeatedBosses.includes(3))||(id===5&&defeatedBosses.includes(4))||(id===6&&defeatedBosses.includes(5))||(id===7&&defeatedBosses.includes(6));
     slot.disabled=!available;
     slot.classList.toggle('available',available);
     slot.title=available?(lang==='en'?'Fight boss #':lang==='ru'?'Бой с боссом №':'Бій з босом №')+id:t('bossBack');
@@ -555,6 +856,7 @@ function startSurvival(){
   if(animId) cancelAnimationFrame(animId);
   menuDrawActive=false;paused=false;hideAll();
   survivalMode=true;
+  customLevelMode=false;customLevel=null;
   bossMode=false;boss=null;currentBossDef=null;bossAttackTimer=0;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
   currentShipDef=SHIPS[activeShip]||SHIPS.blue;
   score=0;sessionXP=0;sessionTokens=0;
@@ -643,15 +945,18 @@ function updateMenuXP(){
     'btn-shop': {need:3,  label:t('shop'),    fn:openShop},
     'btn-events':{need:7, label:t('events'),   fn:openEvents},
     'btn-ach':  {need:5,  label:t('ach'), fn:()=>showOnly('achievements')},
-    'btn-bosses':{need:10, label:t('bosses'),       fn:openBosses},
+    'btn-bosses':{need:10, label:t('bosses'), fn:openBosses},
+    'btn-editor':{need:30, label:t('editor'), fn:openEditor},
   };
   for(const [id,cfg] of Object.entries(def)){
     const btn=document.getElementById(id);
+    if(!btn) continue;
     if(lv>=cfg.need){
       btn.className='mbtn enabled'; btn.innerHTML=cfg.label; btn.onclick=cfg.fn;
     } else {
       btn.className='mbtn locked';
-      btn.innerHTML=cfg.label+'<span class="lock-hint">'+(cfg.need===3?t('lock3'):cfg.need===5?t('lock5'):cfg.need===7?t('lock7'):t('lock10'))+'</span>';
+      const lockMsg=cfg.need===30?t('lockLv').replace('{n}',cfg.need):cfg.need===3?t('lock3'):cfg.need===5?t('lock5'):cfg.need===7?t('lock7'):t('lock10');
+      btn.innerHTML=cfg.label+'<span class="lock-hint">'+lockMsg+'</span>';
       btn.onclick=null;
     }
   }
@@ -1072,11 +1377,33 @@ function defeatEnemyAt(index,color='#fa6'){
   score+=20;
   enemies.splice(index,1);
 }
-function damageBoss(amount,color='#f66'){
-  if(!boss) return;
-  boss.hp-=amount;
-  spawnParts(boss.x,boss.y,color,3);
-  if(boss.hp<=0) winBoss();
+function damageBoss(amount,color='#f66',target){
+  const b=target||boss;
+  if(!b) return;
+  b.hp-=amount;
+  spawnParts(b.x,b.y,color,3);
+  if(b.hp<=0){
+    spawnParts(b.x,b.y,color,18);
+    const idx=activeBosses.indexOf(b);
+    if(idx>=0) activeBosses.splice(idx,1);
+    const defeatedDef=b.def||currentBossDef;
+    const isSummon=!!b.summoned;
+    if(customLevelMode){
+      if(!isSummon&&defeatedDef&&defeatedDef.id===7){
+        activeBosses=(activeBosses||[]).filter(x=>x&&!x.summoned&&x.hp>0);
+      }
+      refreshBossRef();
+      return;
+    }
+    if(!isSummon&&defeatedDef&&defeatedDef.id===7){
+      activeBosses=[];
+      refreshBossRef();
+      winBoss(defeatedDef);
+      return;
+    }
+    refreshBossRef();
+    if(!livingBosses().length) winBoss(defeatedDef);
+  }
 }
 function floatText(txt,color,x,y){
   if(!gameActive||x===undefined) return;
@@ -1124,16 +1451,16 @@ function nearestItemTarget(x,y){
     const distance=Math.hypot(enemy.x-x,enemy.y-y);
     if(distance<closest){closest=distance;result={entity:enemy,isBoss:false};}
   }
-  if(boss){
-    const distance=Math.hypot(boss.x-x,boss.y-y);
-    if(distance<closest) result={entity:boss,isBoss:true};
+  for(const b of livingBosses()){
+    const distance=Math.hypot(b.x-x,b.y-y);
+    if(distance<closest){closest=distance;result={entity:b,isBoss:true};}
   }
   return result;
 }
 function damageItemTarget(target,amount,color){
   if(!target||!target.entity) return;
   if(target.isBoss){
-    if(boss===target.entity) damageBoss(amount,color);
+    if(livingBosses().includes(target.entity)) damageBoss(amount,color,target.entity);
     return;
   }
   const index=enemies.indexOf(target.entity);
@@ -1229,10 +1556,14 @@ function updateItemShots(){
         }
       }
     }else if(shot.kind==='fireSword'){
-      shot.age++;
+      if(shot.startX===undefined){shot.startX=shot.x;shot.startY=shot.y;}
+      shot.age=(shot.age||0)+1;
       const progress=Math.min(1,shot.age/30);
-      shot.x=ship.x+(shot.targetX-ship.x)*progress;
-      shot.y=(ship.y-20)+(shot.targetY-(ship.y-20))*progress;
+      const fromX=shot.startX, fromY=shot.startY;
+      const toX=shot.targetX!==undefined?shot.targetX:fromX;
+      const toY=shot.targetY!==undefined?shot.targetY:fromY;
+      shot.x=fromX+(toX-fromX)*progress;
+      shot.y=fromY+(toY-fromY)*progress;
       shot.angle+=0.35;
       if(progress>=1){
         createFireSwordBurst(shot.x,shot.y);
@@ -1249,30 +1580,159 @@ const BOSSES={
   4:{id:4,name:'Бос №4',hp:15000,rewardTokens:12000,rewardXP:9000,attackInterval:220},
   5:{id:5,name:'Бос №5',hp:35000,rewardTokens:27000,rewardXP:15000,attackInterval:200},
   6:{id:6,name:'Бос №6',hp:80000,rewardTokens:60000,rewardXP:20000,attackInterval:180},
-  6:{id:6,name:'Бос №6',hp:80000,rewardTokens:60000,rewardXP:20000,attackInterval:180}
+  7:{id:7,name:'Бос №7',hp:140000,rewardTokens:90000,rewardXP:20000,attackInterval:900}
 };
+function livingBosses(){
+  if(!Array.isArray(activeBosses)) activeBosses=[];
+  activeBosses=activeBosses.filter(b=>b&&b.hp>0);
+  return activeBosses;
+}
+function refreshBossRef(){
+  const live=livingBosses();
+  boss=live[0]||null;
+  currentBossDef=boss?(boss.def||BOSSES[boss.id]||null):null;
+  bossMode=live.length>0;
+  if(boss){
+    bossLasers=boss.lasers||[];
+    bossLaserTimer=boss.laserTimer||0;
+    bossLaserDmgTimer=boss.laserDmgTimer||0;
+    bossNextIsLaser=!!boss.nextIsLaser;
+    bossLaserMode=boss.laserMode||'normal';
+    bossLaserTick=boss.laserTick||1;
+    bossLaserDamage=boss.laserDamage||0;
+    bossAttackTimer=boss.attackTimer||0;
+  }else{
+    bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;bossNextIsLaser=false;
+  }
+}
+function clearBosses(){
+  activeBosses=[];
+  attackingBoss=null;
+  boss=null;bossMode=false;currentBossDef=null;
+  bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;bossNextIsLaser=false;
+  bossAttackTimer=0;bossLaserDamage=0;bossLaserTick=1;bossLaserMode='normal';
+}
+function makeBossInstance(def,slot,total){
+  return {
+    id:def.id,name:def.name,
+    x:W/2,y:105,
+    hp:def.hp,maxHp:def.hp,
+    phase:(slot||0)*2.1,
+    slot:slot||0,total:total||1,
+    def,
+    attackTimer:0,
+    lasers:[],laserTimer:0,laserDmgTimer:0,
+    laserDamage:0,laserTick:1,laserMode:'normal',
+    nextIsLaser:false,
+    _tripleVolley:0,_volleyTimer:0
+  };
+}
+function copyLaserStateToBoss(b){
+  if(!b) return;
+  b.lasers=bossLasers;
+  b.laserTimer=bossLaserTimer;
+  b.laserDmgTimer=bossLaserDmgTimer;
+  b.laserDamage=bossLaserDamage;
+  b.laserTick=bossLaserTick;
+  b.laserMode=bossLaserMode;
+  b.nextIsLaser=bossNextIsLaser;
+}
 function bossBullet(dmg,speed,type='be',angleOffset=0){
-  if(!boss) return;
-  const ox=boss.x,oy=boss.y+30;
+  const b=attackingBoss||boss;
+  if(!b) return;
+  const ox=b.x,oy=b.y+30;
   const angle=Math.atan2(ship.y-oy,ship.x-ox)+angleOffset;
   bullets.push({x:ox,y:oy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,t:type,dmg});
 }
-function planNextBossAttack(){
-  if(!boss||!currentBossDef) return;
-  boss._plannedRoll=Math.random()*100;
-  const r=boss._plannedRoll;
-  if(currentBossDef.id===1) bossNextIsLaser=(r>=75);
-  else if(currentBossDef.id===2) bossNextIsLaser=(r>=85);
-  else if(currentBossDef.id===6) bossNextIsLaser=(r>=80); // 20% chance laser
-  else bossNextIsLaser=false;
+function planNextBossAttack(src){
+  const b=src||attackingBoss||boss;
+  const def=(b&&b.def)||currentBossDef;
+  if(!b||!def) return;
+  b._plannedRoll=Math.random()*100;
+  const r=b._plannedRoll;
+  if(def.customAttacks&&def.customAttacks.length){
+    b.nextIsLaser=false;
+  }else if(def.id===1) b.nextIsLaser=(r>=75);
+  else if(def.id===2) b.nextIsLaser=(r>=85);
+  else if(def.id===6) b.nextIsLaser=(r>=80);
+  else b.nextIsLaser=false;
+  if(b===boss) bossNextIsLaser=b.nextIsLaser;
 }
-function triggerBossAttack(){
-  if(!boss||!currentBossDef||!gameActive) return;
-  bossAttackTimer=0;
-  const roll=(boss._plannedRoll!==undefined)?boss._plannedRoll:Math.random()*100;
-  boss._plannedRoll=undefined;
+function pickCustomBossAttack(def,roll){
+  const attacks=def.customAttacks||[];
+  if(!attacks.length) return null;
+  const total=attacks.reduce((s,a)=>s+(Number(a.chance)||0),0);
+  if(total<=0) return attacks[0];
+  let acc=0;
+  const r=(roll/100)*total;
+  for(const atk of attacks){
+    acc+=Number(atk.chance)||0;
+    if(r<acc) return atk;
+  }
+  return attacks[attacks.length-1];
+}
+function runCustomBossAttack(b,def,roll){
+  const atk=pickCustomBossAttack(def,roll);
+  if(!atk) return;
+  const type=Number(atk.type)||0;
+  const count=Math.max(1,Math.min(type===3?8:type===1?10:type===2?20:24,Math.floor(Number(atk.c)||1)));
+  const dmg=Math.max(1,Math.min(120,Math.floor(Number(atk.d)||(type===3?100:type===1?30:7))));
+  const monType=Number(atk.t)||0;
+  if(type===0){
+    waveMsg='БОС: '+count+' куль';
+    const mid=(count-1)/2;
+    for(let i=0;i<count;i++) bossBullet(dmg,3.8,'be',(i-mid)*0.11);
+  }else if(type===1){
+    waveMsg='БОС: '+count+' гігантські кулі';
+    const mid=(count-1)/2;
+    for(let i=0;i<count;i++) bossBullet(dmg,2.4,'bg',(i-mid)*0.16);
+  }else if(type===2){
+    if(monType===1){
+      waveMsg='БОС: '+count+' золотих';
+      const mid=(count-1)/2;
+      for(let i=0;i<count;i++) spawnGoldenMonster(b.x+(i-mid)*70,b.y+40);
+    }else{
+      waveMsg='БОС: '+count+' стрілунів';
+      for(let i=0;i<count;i++) spawnShooter(b.x+(Math.random()-0.5)*Math.min(260,80+count*12),b.y+35);
+    }
+  }else{
+    waveMsg='БОС: '+count+' куль смерті';
+    const mid=(count-1)/2;
+    for(let i=0;i<count;i++) bossBullet(100,2.8,'bv',(i-mid)*0.18);
+  }
+}
+function summonBossAdds(host,ids){
+  if(!host||!Array.isArray(ids)||!ids.length) return;
+  activeBosses=(activeBosses||[]).filter(b=>b&&b.hp>0&&!b.summoned);
+  if(host&&!activeBosses.includes(host)&&host.hp>0) activeBosses.unshift(host);
+  host.slot=0;
+  ids.slice(0,2).forEach((id,i)=>{
+    const def=BOSSES[id];
+    if(!def) return;
+    const add=makeBossInstance(def,i+1,ids.length+1);
+    add.summoned=true;
+    add.y=148;
+    add.phase=host.phase+(i+1)*1.7;
+    activeBosses.push(add);
+    planNextBossAttack(add);
+  });
+  refreshBossRef();
+}
+function triggerBossAttack(src){
+  const b=src||boss;
+  const def=(b&&b.def)||currentBossDef;
+  if(!b||!def||!gameActive) return;
+  attackingBoss=b;
+  const savedBoss=boss, savedDef=currentBossDef;
+  boss=b; currentBossDef=def;
+  b.attackTimer=0;
+  const roll=(b._plannedRoll!==undefined)?b._plannedRoll:Math.random()*100;
+  b._plannedRoll=undefined;
+  b.nextIsLaser=false;
   bossNextIsLaser=false;
-  if(currentBossDef.id===1){
+  if(currentBossDef.customAttacks&&currentBossDef.customAttacks.length){
+    runCustomBossAttack(b,currentBossDef,roll);
+  }else if(currentBossDef.id===1){
     if(roll<20){
       waveMsg='БОС: 5 куль';
       for(let i=-2;i<=2;i++) bossBullet(7,3.8,'be',i*0.13);
@@ -1338,10 +1798,10 @@ function triggerBossAttack(){
       waveMsg='БОС: 5 рядів по 20 куль!';
       for(let row=0;row<5;row++){
         setTimeout(()=>{
-          if(!boss||!gameActive) return;
+          if(!gameActive||!b||b.hp<=0) return;
           for(let j=0;j<20;j++){
             const angle=(j/20)*Math.PI*2;
-            bullets.push({x:boss.x,y:boss.y+30,vx:Math.cos(angle)*4,vy:Math.sin(angle)*4,t:'be',dmg:15});
+            bullets.push({x:b.x,y:b.y+30,vx:Math.cos(angle)*4,vy:Math.sin(angle)*4,t:'be',dmg:15});
           }
         }, row*220);
       }
@@ -1356,132 +1816,35 @@ function triggerBossAttack(){
     }
   }else if(currentBossDef.id===6){
     if(roll<20){
-      // 50 рядів по 20 куль
-      waveMsg='БОС: 50 рядів куль!';
-      for(let row=0;row<50;row++){
-        setTimeout(()=>{
-          if(!boss||!gameActive) return;
-          for(let j=0;j<20;j++){
-            const angle=(j/20)*Math.PI*2;
-            bullets.push({x:boss.x,y:boss.y+30,vx:Math.cos(angle)*4.5,vy:Math.sin(angle)*4.5,t:'be',dmg:15});
-          }
-        }, row*120);
-      }
-    }else if(roll<40){
-      // Два вогняних мечі
-      waveMsg='БОС: 2 вогняних мечі!';
-      const targets=[{x:ship.x-60,y:ship.y},{x:ship.x+60,y:ship.y}];
-      targets.forEach(t=>{
-        itemShots.push({
-          kind:'fireSword',
-          x:boss.x+(Math.random()-0.5)*120,
-          y:boss.y+40,
-          tx:t.x, ty:t.y,
-          phase:'falling', speed:6,
-          timer:0
-        });
-      });
-    }else if(roll<60){
-      // 5 куль смерті під різними кутами
-      waveMsg='БОС: 5 КУЛЬ СМЕРТІ!';
-      for(let i=0;i<5;i++){
-        const angleOffset=(i-2)*0.22;
-        bossBullet(100,2.8,'bv',angleOffset);
-      }
-    }else if(roll<80){
-      // Потрійний залп як у боса 3 але 5 хвиль
-      waveMsg='БОС: потрійний мега-залп!';
-      boss._tripleVolley=5;
-      boss._volleyTimer=0;
-    }else{
-      // Три лазери на 3 секунди
-      waveMsg='БОС: ТРІЙНИЙ ЛАЗЕР!';
-      bossLasers=[-40,0,40];
-      bossLaserTimer=180;
-      bossLaserDamage=5;
-      bossLaserTick=6;
-      bossLaserMode='normal';
-      bossNextIsLaser=false;
-    }
-  }else if(currentBossDef.id===6){
-    if(roll<20){
-      waveMsg='БОС: 50 рядів куль!';
-      for(let row=0;row<50;row++){
-        setTimeout(()=>{
-          if(!boss||!gameActive) return;
-          for(let j=0;j<20;j++){
-            const angle=(j/20)*Math.PI*2;
-            bullets.push({x:boss.x,y:boss.y+30,vx:Math.cos(angle)*4.5,vy:Math.sin(angle)*4.5,t:'be',dmg:15});
-          }
-        }, row*120);
-      }
-    }else if(roll<40){
-      waveMsg='БОС: два вогняних мечі!';
-      const dx=ship.x-boss.x, dy=ship.y-boss.y, d=Math.hypot(dx,dy)||1;
-      [-18,18].forEach(ox=>{
-        bullets.push({
-          x:boss.x+ox, y:boss.y+30,
-          vx:dx/d*3.5+ox*0.04, vy:dy/d*3.5,
-          t:'svs', dmg:20, angle:Math.atan2(dy,dx),
-          px:boss.x+ox, py:boss.y+30
-        });
-      });
-    }else if(roll<60){
-      waveMsg='БОС: 5 КУЛЬ СМЕРТІ!';
-      const angles=[-0.35,-0.17,0,0.17,0.35];
-      angles.forEach(a=>bossBullet(100,2.8,'bv',a));
-    }else if(roll<80){
-      waveMsg='БОС: потрійний залп!';
-      boss._tripleVolley=3;
-      boss._volleyTimer=0;
-    }else{
-      waveMsg='БОС: ПОТРІЙНИЙ ЛАЗЕР!';
-      bossLasers=[-45,0,45];
-      bossLaserTimer=180; // 3 секунди
-      bossLaserDamage=5;
-      bossLaserTick=6; // кожні 0.1с
-      bossLaserMode='normal';
-      bossNextIsLaser=false;
-    }
-  }else if(currentBossDef.id===6){
-    if(roll<20){
-      // 50 рядів по 20 куль
       waveMsg='БОС: 50 РЯДІВ КУЛЬ!';
       for(let row=0;row<50;row++){
         setTimeout(()=>{
-          if(!boss||!gameActive) return;
+          if(!gameActive||!b||b.hp<=0) return;
           for(let j=0;j<20;j++){
             const angle=(j/20)*Math.PI*2;
-            bullets.push({x:boss.x,y:boss.y+30,vx:Math.cos(angle)*4.5,vy:Math.sin(angle)*4.5,t:'be',dmg:12});
+            bullets.push({x:b.x,y:b.y+30,vx:Math.cos(angle)*4.5,vy:Math.sin(angle)*4.5,t:'be',dmg:12});
           }
         }, row*160);
       }
     }else if(roll<40){
-      // Два вогняних мечі
       waveMsg='БОС: 2 ВОГНЯНИХ МЕЧІ!';
-      const targets=[{x:ship.x-60,y:ship.y},{x:ship.x+60,y:ship.y}];
-      targets.forEach(t=>{
+      [{x:ship.x-60,y:ship.y},{x:ship.x+60,y:ship.y}].forEach(t=>{
         itemShots.push({
           kind:'fireSword',
           x:boss.x+(Math.random()-0.5)*120,
           y:boss.y+40,
           targetX:t.x, targetY:t.y,
-          vx:0,vy:3,phase:'fall',
-          dmg:20,exploded:false
+          age:0, angle:0
         });
       });
     }else if(roll<60){
-      // 5 пуль смерті
       waveMsg='БОС: 5 КУЛЬ СМЕРТІ!';
-      const angles=[-0.36,-0.18,0,0.18,0.36];
-      angles.forEach(a=>bossBullet(100,2.8,'bv',a));
+      [-0.36,-0.18,0,0.18,0.36].forEach(a=>bossBullet(100,2.8,'bv',a));
     }else if(roll<80){
-      // Triple volley (як бос 3)
-      waveMsg='БОС: ПОТРІЙНИЙ ЗАЛП!';
-      boss._tripleVolley=3;
+      waveMsg='БОС: ПОТРІЙНИЙ МЕГА-ЗАЛП!';
+      boss._tripleVolley=5;
       boss._volleyTimer=0;
     }else{
-      // Три лазери на 3 секунди
       waveMsg='БОС: ТРИ ЛАЗЕРИ!';
       bossLasers=[-40,0,40];
       bossLaserTimer=180;
@@ -1490,11 +1853,24 @@ function triggerBossAttack(){
       bossLaserMode='normal';
       bossNextIsLaser=false;
     }
+  }else if(currentBossDef.id===7){
+    if(roll<50){
+      waveMsg='БОС: два боси №1!';
+      summonBossAdds(b,[1,1]);
+    }else{
+      waveMsg='БОС: бос №3!';
+      summonBossAdds(b,[3]);
+    }
   }
   bossLaserDmgTimer=0;
+  b.laserDmgTimer=0;
+  copyLaserStateToBoss(b);
   waveMsgTimer=120;
-  // Плануємо наступну атаку одразу — щоб знак ⚠ міг з'явитись заздалегідь
-  planNextBossAttack();
+  planNextBossAttack(b);
+  attackingBoss=null;
+  boss=savedBoss;
+  currentBossDef=savedDef;
+  refreshBossRef();
 }
 
 function bulletHitsShip(b){
@@ -1529,41 +1905,63 @@ function update(){
   if(invincible>0) invincible--;
 
   // ── Boss movement and attacks ──
-  if(bossMode&&boss){
-    boss.phase+=0.018;
-    boss.x=W/2+Math.sin(boss.phase)*Math.min(W*0.32,150);
-    bossAttackTimer++;
-    if(bossLaserTimer>0){
-      bossLaserTimer--;
-      bossLaserDmgTimer++;
-      if(bossLaserDmgTimer>=bossLaserTick){
-        bossLaserDmgTimer=0;
-        const laserHitWidth=bossLaserMode==='mega'?28:14;
-        if(bossLasers.some(offset=>Math.abs(ship.x-(boss.x+offset))<laserHitWidth)){
+  const liveBosses=livingBosses();
+  for(const b of liveBosses){
+    b.phase+=0.018;
+    const summons=liveBosses.filter(x=>x.summoned);
+    const hasAdds=summons.length>0;
+    let home=W/2, amp=Math.min(W*0.32,150);
+    if(b.summoned){
+      const si=Math.max(0,summons.indexOf(b));
+      home=summons.length===1?W*0.72:(si===0?W*0.22:W*0.78);
+      amp=Math.min(W*0.12,56);
+      b.y=148;
+    }else if(hasAdds){
+      home=W/2;
+      amp=Math.min(W*0.18,80);
+      b.y=96;
+    }else if(liveBosses.length>=2){
+      home=b.slot===0?W*0.28:W*0.72;
+      amp=Math.min(W*0.16,72);
+    }
+    b.x=home+Math.sin(b.phase)*amp;
+    b.attackTimer=(b.attackTimer||0)+1;
+    if(b.laserTimer>0){
+      b.laserTimer--;
+      b.laserDmgTimer=(b.laserDmgTimer||0)+1;
+      const tick=b.laserTick||1;
+      if(b.laserDmgTimer>=tick){
+        b.laserDmgTimer=0;
+        const laserHitWidth=b.laserMode==='mega'?28:14;
+        const beams=b.lasers||[];
+        if(beams.some(offset=>Math.abs(ship.x-(b.x+offset))<laserHitWidth)){
           playerHP-=5;
           spawnParts(ship.x,ship.y,'#f66',4);
           if(playerHP<=0){playerHP=0;endGame();return;}
         }
       }
-      if(bossLaserTimer===0){
-        bossLasers=[];
-        bossAttackTimer=0;
-        planNextBossAttack();
+      if(b.laserTimer===0){
+        b.lasers=[];
+        b.attackTimer=0;
+        planNextBossAttack(b);
       }
-    }else if(bossAttackTimer>=currentBossDef.attackInterval){
-      triggerBossAttack();
+    }else if(b.attackTimer>=((b.def||currentBossDef||{}).attackInterval||240)){
+      triggerBossAttack(b);
+      if(!gameActive) return;
     }
-    if(bossLaserTimer>0) bossNextIsLaser=false;
-    // Triple volley for boss 3
-    if(boss._tripleVolley>0){
-      boss._volleyTimer=(boss._volleyTimer||0)+1;
-      if(boss._volleyTimer>=20){
-        boss._volleyTimer=0;
-        boss._tripleVolley--;
+    if(b.laserTimer>0) b.nextIsLaser=false;
+    if(b._tripleVolley>0){
+      b._volleyTimer=(b._volleyTimer||0)+1;
+      if(b._volleyTimer>=20){
+        b._volleyTimer=0;
+        b._tripleVolley--;
+        attackingBoss=b;
         for(let i=-5;i<=4;i++) bossBullet(5,3.8,'be',i*0.09);
+        attackingBoss=null;
       }
     }
   }
+  refreshBossRef();
 
   // ── Shooting logic per ship ──
   if(currentShipDef.laser){
@@ -1584,9 +1982,11 @@ function update(){
         laserDmgTimer=0;
         const laserOffsets=currentShipDef.laserLines===3?[-14,0,14]:[0];
         // Damage each enemy once per tick if it intersects any beam.
-        if(boss&&laserOffsets.some(offset=>Math.abs(boss.x-(ship.x+offset))<12)){
-          damageBoss(currentShipDef.dmg,currentShipDef.id==='goldenDestroyer'?'#fc3':'#f44');
-          if(!gameActive) return;
+        for(const b of livingBosses()){
+          if(laserOffsets.some(offset=>Math.abs(b.x-(ship.x+offset))<12)){
+            damageBoss(currentShipDef.dmg,currentShipDef.id==='goldenDestroyer'?'#fc3':'#f44',b);
+            if(!gameActive) return;
+          }
         }
         for(let i=enemies.length-1;i>=0;i--){
           const e=enemies[i];
@@ -1636,11 +2036,12 @@ function update(){
     // Black hole: grow, attract enemies, kill on touch
     if(blackHole){
       blackHole.timer--;
-      const progress=1-(blackHole.timer/currentShipDef.blackHoleDuration);
+      const bhDur=(currentShipDef.blackHoleDuration)||120;
+      const progress=1-(blackHole.timer/bhDur);
       blackHole.radius=Math.min(blackHole.maxRadius, progress*blackHole.maxRadius*1.4);
       for(let i=enemies.length-1;i>=0;i--){
         const e=enemies[i];
-        if(e.friendly||e.isBossEnemy) continue;
+        if(e.friendly||e.isBossEnemy||e.stationary) continue;
         const dx=blackHole.x-e.x, dy=blackHole.y-e.y;
         const dist=Math.hypot(dx,dy)||1;
         if(dist<blackHole.pullRadius){
@@ -1782,13 +2183,13 @@ function update(){
             const d=Math.hypot(e.x-helper.x,e.y-helper.y);
             if(d<td){td=d;target=e;}
           }
-          if(boss){
-            const d=Math.hypot(boss.x-helper.x,boss.y-helper.y);
-            if(d<td){td=d;target=boss;}
+          for(const b of livingBosses()){
+            const d=Math.hypot(b.x-helper.x,b.y-helper.y);
+            if(d<td){td=d;target=b;}
           }
           if(target){
             if(helperDef.projectile==='knife'){
-              const isBoss = target===boss;
+              const isBoss = livingBosses().includes(target);
               itemShots.push({
                 kind:'helperKnife',
                 x:helper.x, y:helper.y-16,
@@ -1821,7 +2222,7 @@ function update(){
       }
     }
     // Powerful Vibrator: kill enemies in radius
-    if(helperDef.id==='powerfulVibrator'){
+    if(helperDef&&helperDef.id==='powerfulVibrator'){
       for(let i=enemies.length-1;i>=0;i--){
         const e=enemies[i];
         if(e.friendly||e.isBossEnemy) continue;
@@ -1851,9 +2252,9 @@ function update(){
         const d=Math.hypot(en.x-e.x,en.y-e.y);
         if(d<td){td=d;target=en;}
       }
-      if(boss){
-        const d=Math.hypot(boss.x-e.x,boss.y-e.y);
-        if(d<td){td=d;target=boss;}
+      for(const b of livingBosses()){
+        const d=Math.hypot(b.x-e.x,b.y-e.y);
+        if(d<td){td=d;target=b;}
       }
       if(target){
         const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;
@@ -1873,12 +2274,41 @@ function update(){
   }
   updateItemShots();
 
-  if(!bossMode&&waveTimer>=600){ waveTimer=0; waveCount++; waveMsg='Хвиля '+waveCount; waveMsgTimer=120; }
+  if(!bossMode&&!customLevelMode&&!survivalMode&&waveTimer>=600){ waveTimer=0; waveCount++; waveMsg=t('editorWave').replace('{a}',waveCount).replace('{b}',waveCount); waveMsgTimer=120; }
   if(waveMsgTimer>0) waveMsgTimer--;
+
+  if(customLevelMode){
+    if(customDialog){
+      customDialog.timer--;
+      if(customDialog.timer<=0){
+        if(customDialogQueue.length){
+          startNextCustomDialog();
+        }else{
+          customDialog=null;
+          spawnCustomWaveContents(customWaveIdx);
+        }
+      }
+    }else{
+      const hasFoes=enemies.some(e=>e&&!e.friendly)||!!boss;
+      if(!hasFoes){
+        customWaveDelay++;
+        if(customWaveDelay>=50){
+          customWaveDelay=0;
+          grantCustomWaveReward(customWaveIdx);
+          if(customLevel&&customWaveIdx+1<customLevel.waves.length){
+            beginCustomWave(customWaveIdx+1);
+          }else{
+            winCustomLevel();
+            return;
+          }
+        }
+      }else customWaveDelay=0;
+    }
+  }
 
   // Spawn enemies
   const spawnRate=Math.max(50,120-waveCount*8);
-  if(!bossMode&&frame%spawnRate===0){ const n=Math.min(waveCount,4); for(let i=0;i<n;i++){ if(Math.random()<0.05) spawnGoldenMonster(); else spawnShooter(); } }
+  if(!bossMode&&!customLevelMode&&!survivalMode&&frame%spawnRate===0){ const n=Math.min(waveCount,4); for(let i=0;i<n;i++){ if(Math.random()<0.05) spawnGoldenMonster(); else spawnShooter(); } }
 
   // Bullets move
   for(let i=bullets.length-1;i>=0;i--){
@@ -1887,42 +2317,51 @@ function update(){
     if(b.y<-20||b.y>H+20||b.x<-20||b.x>W+20) bullets.splice(i,1);
   }
 
-  // Player projectiles can also hit the boss.
-  if(boss){
+  // Player projectiles can also hit bosses.
+  const hitBosses=livingBosses();
+  if(hitBosses.length){
     for(let i=bullets.length-1;i>=0;i--){
       const b=bullets[i];
       if(b.t!=='p'&&b.t!=='h'&&b.t!=='r'&&b.t!=='eh'&&b.t!=='sp'&&b.t!=='fi'&&b.t!=='pv'&&b.t!=='tx') continue;
-      if(Math.hypot(b.x-boss.x,b.y-boss.y)>42) continue;
-        bullets.splice(i,1);
-        if(b.t==='eh'){
-          damageBoss(b.dmg,'#6df');
-          const dead=[];
-          for(let k=enemies.length-1;k>=0;k--){
-            const nearby=enemies[k];
-            if(Math.hypot(nearby.x-boss.x,nearby.y-boss.y)<=b.splashRadius){
-              nearby.hp-=b.splashDmg;
-              spawnParts(nearby.x,nearby.y,'#6df',4);
-              if(nearby.hp<=0) dead.push(k);
-            }
-          }
-          [...new Set(dead)].sort((a,b)=>b-a).forEach(index=>defeatEnemyAt(index,'#6df'));
-        }else{
-          damageBoss(b.dmg,'#fa6');
-        }
-        if(!gameActive) return;
+      let hit=null;
+      for(const ent of hitBosses){
+        if(Math.hypot(b.x-ent.x,b.y-ent.y)<=42){hit=ent;break;}
       }
+      if(!hit) continue;
+      bullets.splice(i,1);
+      if(b.t==='eh'){
+        damageBoss(b.dmg,'#6df',hit);
+        const dead=[];
+        for(let k=enemies.length-1;k>=0;k--){
+          const nearby=enemies[k];
+          if(Math.hypot(nearby.x-hit.x,nearby.y-hit.y)<=b.splashRadius){
+            nearby.hp-=b.splashDmg;
+            spawnParts(nearby.x,nearby.y,'#6df',4);
+            if(nearby.hp<=0) dead.push(k);
+          }
+        }
+        [...new Set(dead)].sort((a,c)=>c-a).forEach(index=>defeatEnemyAt(index,'#6df'));
+      }else{
+        damageBoss(b.dmg,'#fa6',hit);
+      }
+      if(!gameActive) return;
     }
+  }
 
   // Enemies
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     if(!e) continue;
-    e.phase+=0.04;
-    e.x+=e.vx+Math.sin(e.phase)*0.35;
-    e.y+=e.vy;
-    if(e.x<=20){e.x=20;e.vx=Math.abs(e.vx);}
-    if(e.x>=W-20){e.x=W-20;e.vx=-Math.abs(e.vx);}
-    if(e.y>H+40){enemies.splice(i,1);continue;}
+    if(e.stationary){
+      e.vx=0;e.vy=0;
+    }else{
+      e.phase+=0.04;
+      e.x+=e.vx+Math.sin(e.phase)*0.35;
+      e.y+=e.vy;
+      if(e.x<=20){e.x=20;e.vx=Math.abs(e.vx);}
+      if(e.x>=W-20){e.x=W-20;e.vx=-Math.abs(e.vx);}
+      if(e.y>H+40){enemies.splice(i,1);continue;}
+    }
     if(e.friendly) continue; // дружні стрілуни не атакують гравця
 
     // Enemies reaching the ship deal contact damage instead of silently
@@ -1968,8 +2407,7 @@ function update(){
           }
           break;
         }else if(e.infected){
-          // Заражений монстр імунний до урону
-          bullets.splice(j,1);
+          // Заражений монстр імунний до урону (куля вже видалена вище)
           break;
         }else if(b.t==='eh'){
           const impactX=e.x,impactY=e.y,dead=[];
@@ -2214,6 +2652,41 @@ function drawBoss(b){
     cx.strokeStyle='#ff22aa';cx.lineWidth=2;cx.shadowColor='#f0a';cx.shadowBlur=8;
     cx.beginPath();cx.moveTo(-14,10);cx.lineTo(-8,6);cx.lineTo(-3,12);cx.lineTo(3,6);cx.lineTo(8,12);cx.lineTo(14,10);cx.stroke();
     cx.shadowBlur=0;
+  }else if(b.id===7){
+    const t7=frame*0.035;
+    const aura=cx.createRadialGradient(0,0,18,0,0,72);
+    aura.addColorStop(0,'rgba(255,210,80,0.18)');
+    aura.addColorStop(0.55,'rgba(80,180,255,0.12)');
+    aura.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=aura;cx.beginPath();cx.arc(0,0,72,0,Math.PI*2);cx.fill();
+    cx.shadowColor='#7af';cx.shadowBlur=28;
+    cx.fillStyle='#10203a';
+    cx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=((i/6)-0.25)*Math.PI*2;
+      if(i===0) cx.moveTo(Math.cos(a)*44,Math.sin(a)*44);
+      else cx.lineTo(Math.cos(a)*44,Math.sin(a)*44);
+    }
+    cx.closePath();cx.fill();
+    cx.shadowBlur=0;
+    cx.strokeStyle='#7af';cx.lineWidth=3;cx.stroke();
+    cx.fillStyle='#0b1220';
+    cx.beginPath();cx.arc(0,0,18,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='#fc3';cx.lineWidth=2;cx.beginPath();cx.arc(0,0,18,0,Math.PI*2);cx.stroke();
+    cx.save();cx.rotate(t7);
+    cx.strokeStyle='rgba(255,210,80,0.7)';cx.lineWidth=2;
+    cx.beginPath();cx.ellipse(0,0,34,12,0,0,Math.PI*2);cx.stroke();
+    cx.restore();
+    cx.save();cx.rotate(-t7*1.2);
+    cx.strokeStyle='rgba(80,180,255,0.55)';cx.lineWidth=1.5;
+    cx.beginPath();cx.ellipse(0,0,38,10,0.4,0,Math.PI*2);cx.stroke();
+    cx.restore();
+    cx.fillStyle='#dff';cx.shadowColor='#7af';cx.shadowBlur=10;
+    cx.beginPath();cx.arc(-11,-6,6,0,Math.PI*2);cx.arc(11,-6,6,0,Math.PI*2);cx.fill();
+    cx.shadowBlur=0;
+    cx.fillStyle='#123';cx.beginPath();cx.arc(-11,-6,2.4,0,Math.PI*2);cx.arc(11,-6,2.4,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='#fc3';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(-12,12);cx.lineTo(0,18);cx.lineTo(12,12);cx.stroke();
   }else{
     cx.shadowColor='#f44';cx.shadowBlur=18;
     cx.fillStyle='#81284c';cx.fillRect(-28,-28,56,56);
@@ -2331,7 +2804,7 @@ function drawHUD(){
 
   // Score top-left
   cx.fillStyle='#c8e6ff';cx.textAlign='left';
-  cx.fillText('Рахунок: '+score,14,fs+10);
+  cx.fillText(t('score')+': '+score,14,fs+10);
 
   // Tokens top-right
   cx.fillStyle='#5df';cx.textAlign='right';
@@ -2341,13 +2814,17 @@ function drawHUD(){
   cx.fillStyle='#88a';cx.font=`${Math.max(10,fs-2)}px monospace`;
   cx.fillText('XP: +'+sessionXP,W-14,fs+26);
 
-  if(bossMode&&boss){
-    const bossBarW=Math.min(300,W*0.64),bossBarH=9,bossBarX=(W-bossBarW)/2,bossBarY=fs+40;
-    const bossPct=Math.max(0,boss.hp/boss.maxHp);
-    cx.fillStyle='rgba(255,255,255,0.12)';cx.fillRect(bossBarX,bossBarY,bossBarW,bossBarH);
-    cx.fillStyle='#f44';cx.fillRect(bossBarX,bossBarY,bossBarW*bossPct,bossBarH);
-    cx.fillStyle='#fbb';cx.font=`${Math.max(10,fs-2)}px monospace`;cx.textAlign='center';
-    cx.fillText(boss.name+' HP: '+Math.max(0,boss.hp)+' / '+boss.maxHp,W/2,bossBarY-4);
+  if(bossMode){
+    const liveBossesHUD=livingBosses();
+    liveBossesHUD.forEach((b,bi)=>{
+      const bossBarW=Math.min(300,W*0.64),bossBarH=9;
+      const bossBarX=(W-bossBarW)/2,bossBarY=fs+40+bi*28;
+      const bossPct=Math.max(0,b.hp/b.maxHp);
+      cx.fillStyle='rgba(255,255,255,0.12)';cx.fillRect(bossBarX,bossBarY,bossBarW,bossBarH);
+      cx.fillStyle=bi===0?'#f44':'#f90';cx.fillRect(bossBarX,bossBarY,bossBarW*bossPct,bossBarH);
+      cx.fillStyle='#fbb';cx.font=`${Math.max(10,fs-2)}px monospace`;cx.textAlign='center';
+      cx.fillText(b.name+' HP: '+Math.max(0,b.hp)+' / '+b.maxHp,W/2,bossBarY-4);
+    });
   }
 
   // HP bar
@@ -2397,7 +2874,7 @@ function draw(){
 
   if(laserActive||laserCooldown>0) drawLaser();
   if(bossLaserTimer>0) drawBossLasers();
-  if(boss) drawBoss(boss);
+  livingBosses().forEach(b=>drawBoss(b));
   drawItemShots();
 
   // Draw black hole
@@ -2511,15 +2988,29 @@ function draw(){
     cx.fillText('💎 '+tokens,W/2,fs2+28);
   }else if(gameActive){
     drawHUD();
+    if(customDialog){
+      const boxW=Math.min(W-24,360), boxH=Math.min(H*0.28,140);
+      const bx=(W-boxW)/2, by=H*0.28;
+      cx.fillStyle='rgba(6,6,20,0.82)';
+      cx.beginPath();cx.roundRect(bx,by,boxW,boxH,10);cx.fill();
+      cx.strokeStyle='#7af';cx.lineWidth=1;
+      cx.beginPath();cx.roundRect(bx,by,boxW,boxH,10);cx.stroke();cx.lineWidth=1;
+      cx.fillStyle='#cfe';cx.font=`${Math.max(13,Math.min(16,W*0.038))}px monospace`;
+      cx.textAlign='center';cx.textBaseline='middle';
+      wrapDialogText(customDialog.text,W/2,by+boxH/2-8,boxW-24);
+      const sec=Math.max(0,Math.ceil(customDialog.timer/60));
+      cx.fillStyle='#88a';cx.font='11px monospace';
+      cx.fillText(sec+'с',W/2,by+boxH-16);
+    }
   }else{
     drawVersionOnly();
   }
   if(gameActive&&paused){
     cx.fillStyle='rgba(6,6,20,0.62)';cx.fillRect(0,0,W,H);
     cx.fillStyle='#7af';cx.font='700 22px monospace';cx.textAlign='center';
-    cx.fillText('ПАУЗА',W/2,H/2-20);
+    cx.fillText(t('pause'),W/2,H/2-20);
     cx.font='12px monospace';cx.fillStyle='#88a';
-    cx.fillText('Натисніть Ⅱ або P, щоб продовжити',W/2,H/2+6);
+    cx.fillText(t('pauseHint'),W/2,H/2+6);
     // Exit button
     const bw=160,bh=40,bx=W/2-bw/2,by=H/2+28;
     cx.fillStyle='rgba(255,50,50,0.12)';
@@ -2527,7 +3018,7 @@ function draw(){
     cx.strokeStyle='#f44';cx.lineWidth=0.5;
     cx.beginPath();cx.roundRect(bx,by,bw,bh,8);cx.stroke();cx.lineWidth=1;
     cx.fillStyle='#f66';cx.font='14px monospace';cx.textAlign='center';
-    cx.fillText('⬅ Вийти в меню',W/2,by+bh/2+5);
+    cx.fillText(t('pauseExit'),W/2,by+bh/2+5);
     // store hit area for click detection
     window._pauseExitBtn={x:bx,y:by,w:bw,h:bh};
   } else {
@@ -2556,20 +3047,119 @@ function menuDraw(){
 
 // ── Start / End ──
 function startGame(){
+  beginRun({mode:'normal'});
+}
+
+function customScript(){
+  return (customLevel&&customLevel.parsed)||{defaultReward:0,waveRewards:{},bosses:{},dialogs:[],customBosses:[]};
+}
+function grantCustomWaveReward(idx){
+  if(!customLevel||customWaveRewarded) return;
+  customWaveRewarded=true;
+  const script=customScript();
+  const waveNo=idx+1;
+  const amount=script.waveRewards[waveNo]!=null?script.waveRewards[waveNo]:(script.defaultReward||0);
+  if(amount>0) gainTokens(amount,ship?ship.x:W/2,ship?ship.y-24:80);
+}
+function buildCustomBossDef(cfg){
+  const visual=Math.max(1,Math.min(7,Math.floor(Number(cfg.visual)||1)));
+  const base=BOSSES[visual]||BOSSES[1];
+  const hp=Math.max(200,Math.min(140000,Math.floor(Number(cfg.hp)||base.hp)));
+  const interval=Math.max(90,Math.min(900,Math.floor(Number(cfg.interval)||base.attackInterval||240)));
+  const name=(cfg.name&&String(cfg.name).trim())||('Custom · '+base.name);
+  return {
+    id:visual,
+    name,
+    hp,
+    rewardTokens:0,
+    rewardXP:0,
+    attackInterval:interval,
+    customAttacks:Array.isArray(cfg.attacks)?cfg.attacks:[],
+    custom:true,
+    visual
+  };
+}
+function spawnCustomBoss(waveIdx){
+  const script=customScript();
+  const waveNo=waveIdx+1;
+  const entry=script.bosses[waveNo];
+  const nums=entry==null?[]:(Array.isArray(entry)?entry:[entry]);
+  const stock=nums.filter(n=>BOSSES[n]).map(n=>BOSSES[n]);
+  const customs=(script.customBosses||[]).filter(cb=>cb.wave===waveNo).map(buildCustomBossDef);
+  const defs=[...customs,...stock].slice(0,2);
+  if(!defs.length) return;
+  bossMode=true;
+  activeBosses=defs.map((def,i)=>makeBossInstance(def,i,defs.length));
+  refreshBossRef();
+  activeBosses.forEach(b=>planNextBossAttack(b));
+  waveMsg=activeBosses.map(b=>b.name).join(' + ');waveMsgTimer=180;
+}
+function loadCustomWave(idx){
+  if(!customLevel||!customLevel.waves||!customLevel.waves[idx]) return;
+  customLevel.waves[idx].enemies.forEach(placed=>{
+    const x=Math.max(30,Math.min(W-30,(placed.rx||0.5)*W));
+    const y=Math.max(36,Math.min(H*0.68,(placed.ry||0.15)*H));
+    if(placed.golden) spawnGoldenMonster(x,y);
+    else spawnShooter(x,y);
+    const e=enemies[enemies.length-1];
+    if(e){e.x=x;e.y=y;e.vx=0;e.vy=0;e.stationary=true;}
+  });
+}
+function spawnCustomWaveContents(idx){
+  loadCustomWave(idx);
+  spawnCustomBoss(idx);
+}
+function startNextCustomDialog(){
+  const next=customDialogQueue.shift();
+  if(!next){customDialog=null;return false;}
+  customDialog={
+    text:String(next.text||''),
+    timer:Math.max(30,Math.round((Number(next.seconds)||2)*60))
+  };
+  return true;
+}
+function beginCustomWave(idx){
+  customWaveIdx=idx;
+  customWaveDelay=0;
+  customWaveRewarded=false;
+  waveCount=idx+1;
+  const total=customLevel&&customLevel.waves?customLevel.waves.length:1;
+  waveMsg=t('editorWave').replace('{a}',idx+1).replace('{b}',total);
+  waveMsgTimer=120;
+  boss=null;bossMode=false;currentBossDef=null;bossLasers=[];bossLaserTimer=0;
+  customDialogQueue=(customScript().dialogs||[]).filter(d=>d.wave===idx+1);
+  if(customDialogQueue.length){
+    startNextCustomDialog();
+    return;
+  }
+  customDialog=null;
+  spawnCustomWaveContents(idx);
+}
+
+function beginRun(opts){
+  opts=opts||{};
   gameRunId++;
   if(animId) cancelAnimationFrame(animId);
   menuDrawActive=false; paused=false; hideAll();
+  survivalMode=false;
   bossMode=false;boss=null;currentBossDef=null;bossAttackTimer=0;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  customLevelMode=opts.mode==='custom';
+  customLevel=customLevelMode?opts.level:null;
+  customWaveIdx=0; customWaveDelay=0; customDialog=null; customDialogQueue=[]; customWaveRewarded=false;
+  customLevelReturnTo=opts.returnTo||'edit';
   currentShipDef=SHIPS[activeShip]||SHIPS.blue;
   score=0;sessionXP=0;sessionTokens=0;
   playerHP=currentShipDef.hp; playerMaxHP=currentShipDef.hp;
   frame=0;waveTimer=0;waveCount=1;shootTimer=0;invincible=0;
   laserActive=false;laserTimer=0;laserCooldown=0;laserDmgTimer=0;
-  waveMsg='Хвиля 1';waveMsgTimer=120;
+  const levelName=customLevel&&customLevel.name?customLevel.name:'';
+  waveMsg=customLevelMode?(levelName+' · '+t('editorWave').replace('{a}',1).replace('{b}',customLevel.waves.length)):t('editorWave').replace('{a}',1).replace('{b}',1);
+  waveMsgTimer=120;
   mx=W/2;my=H-70;
   ship={x:W/2,y:H-70,trail:[],_elecTimer:0};
   helper=activeHelper&&HELPERS[activeHelper]?{x:W/2-42,y:H-70,trail:[]}:null;
   bullets=[];enemies=[];particles=[];itemShots=[];itemTimer=0;blackHole=null;
+  if(customLevelMode) beginCustomWave(0);
   gameActive=true;
   showGameButtons();
   document.getElementById('pause-btn').style.display='block';
@@ -2579,22 +3169,68 @@ function startGame(){
   gameLoop();
 }
 
+function setGameOverAction(onClick,label){
+  const btn=document.getElementById('go-btn');
+  btn.textContent=label||t('returnMenu');
+  btn.onclick=onClick||showMenu;
+}
+
+function returnAfterCustomLevel(){
+  const dest=customLevelReturnTo;
+  customLevelMode=false;customLevel=null;
+  setGameOverAction(showMenu,t('returnMenu'));
+  if(dest==='list'){openEditor();return;}
+  if(dest==='finish'){
+    openEditor();
+    if(!editorCurrent) return;
+    document.getElementById('editor-list-view').style.display='none';
+    document.getElementById('editor-create-view').style.display='none';
+    document.getElementById('editor-finish-view').style.display='flex';
+    document.getElementById('editor-finish-view').style.flexDirection='column';
+    document.getElementById('editor-finish-view').style.alignItems='center';
+    return;
+  }
+  resumeEditorEdit();
+}
+
+function winCustomLevel(){
+  if(!gameActive||!customLevelMode) return;
+  const name=(customLevel&&customLevel.name)||'';
+  gameRunId++;
+  gameActive=false;menuDrawActive=false;paused=false;
+  document.getElementById('pause-btn').style.display='none';
+  joyBase.style.display='none';
+  if(animId) cancelAnimationFrame(animId);
+  animId=null;enemies=[];bullets=[];particles=[];itemShots=[];itemTimer=0;laserActive=false;
+  draw();
+  showMenuButtons();
+  document.getElementById('gameover-title').textContent=t('levelCleared');
+  document.getElementById('go-text').innerHTML=
+    (name?('«'+name+'» '+t('editorCleared')+'<br>'):'')+
+    t('score')+': '+score+
+    '<br>💎 '+t('earned')+': '+sessionTokens+
+    '<br>'+t('xpEarned')+': +'+sessionXP+
+    '<br>'+t('level')+': '+xpLevel;
+  setGameOverAction(returnAfterCustomLevel,t('editorToEditor'));
+  showOnly('gameover');
+  updateMenuXP();
+}
+
 function startBossFight(id){
   const bossDef=BOSSES[id];
   if(!bossDef) return;
   gameRunId++;
   if(animId) cancelAnimationFrame(animId);
   menuDrawActive=false;paused=false;hideAll();
+  customLevelMode=false;customLevel=null;
   bossMode=true;
   currentBossDef=bossDef;
-  boss={
-    id:bossDef.id,name:bossDef.name,x:W/2,y:105,
-    hp:bossDef.hp,maxHp:bossDef.hp,phase:0
-  };
+  activeBosses=[makeBossInstance(bossDef,0,1)];
+  boss=activeBosses[0];
   bossAttackTimer=0;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
   bossLaserDamage=0;bossLaserTick=1;bossLaserMode='normal';
   bossNextIsLaser=false;bossWarnTimer=0;
-  planNextBossAttack();
+  planNextBossAttack(boss);
   currentShipDef=SHIPS[activeShip]||SHIPS.blue;
   score=0;sessionXP=0;sessionTokens=0;
   playerHP=currentShipDef.hp;playerMaxHP=currentShipDef.hp;
@@ -2613,9 +3249,10 @@ function startBossFight(id){
   gameLoop();
 }
 
-function winBoss(){
-  if(!gameActive||!bossMode||!boss) return;
-  const defeatedBoss=currentBossDef;
+function winBoss(defeated){
+  if(!gameActive||(!bossMode&&!defeated)) return;
+  const defeatedBoss=defeated||currentBossDef;
+  if(!defeatedBoss) return;
   sessionXP+=defeatedBoss.rewardXP;
   totalXP+=defeatedBoss.rewardXP;
   while(xpLevel<250&&totalXP>=xpForNextLevel(xpLevel)) xpLevel++;
@@ -2634,7 +3271,7 @@ function winBoss(){
   showMenuButtons();
   document.getElementById('go-text').innerHTML=
     defeatedBoss.name+' ПЕРЕМОЖЕНИЙ!'+
-    '<br>Рахунок: '+score+
+    '<br>'+t('score')+': '+score+
     '<br>💎 Нагорода: '+defeatedBoss.rewardTokens+
     '<br>XP нагорода: +'+defeatedBoss.rewardXP+
     '<br>XP-рівень: '+xpLevel;
@@ -2645,6 +3282,8 @@ function winBoss(){
 function endGame(){
   const wasSurvival=survivalMode;
   const survivedSec=survivalSec;
+  const wasCustom=customLevelMode;
+  const customName=customLevel&&customLevel.name;
   gameRunId++;
   gameActive=false;menuDrawActive=false;
   paused=false;survivalMode=false;
@@ -2656,12 +3295,17 @@ function endGame(){
   enemies=[];bullets=[];particles=[];itemShots=[];itemTimer=0;laserActive=false;
   draw();
   showMenuButtons();
+  document.getElementById('gameover-title').textContent=t('gameover');
   document.getElementById('go-text').innerHTML= wasSurvival
-    ? t('survived')+': '+survivedSec+'с<br>💎 Зароблено: '+sessionTokens
-    : 'Рахунок: '+score+
-      '<br>💎 Зароблено: '+sessionTokens+
-      '<br>XP зароблено: +'+sessionXP+
-      '<br>XP-рівень: '+xpLevel;
+    ? t('survived')+': '+survivedSec+'с<br>💎 '+t('earned')+': '+sessionTokens
+    : (wasCustom&&customName?('«'+customName+'»<br>'):'')+
+      t('score')+': '+score+
+      '<br>💎 '+t('earned')+': '+sessionTokens+
+      '<br>'+t('xpEarned')+': +'+sessionXP+
+      '<br>'+t('level')+': '+xpLevel;
+  if(wasCustom) setGameOverAction(returnAfterCustomLevel,t('editorToEditor'));
+  else setGameOverAction(showMenu,t('returnMenu'));
+  customLevelMode=false;
   showOnly('gameover');
   updateMenuXP();
 }
@@ -2669,9 +3313,11 @@ function endGame(){
 function showMenu(){
   gameRunId++;
   gameActive=false;survivalMode=false;
+  customLevelMode=false;
   paused=false;
   bossMode=false;boss=null;currentBossDef=null;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
   itemShots=[];itemTimer=0;
+  setGameOverAction(showMenu,t('returnMenu'));
   document.getElementById('pause-btn').style.display='none';
   joyBase.style.display='none';
   if(animId) cancelAnimationFrame(animId);
@@ -2680,8 +3326,7 @@ function showMenu(){
   showMenuButtons();
   showOnly('menu');
   updateMenuXP();
-  menuDrawActive=true;
-  menuDraw();
+  if(!menuDrawActive){menuDrawActive=true;menuDraw();}
 }
 
 // ── Controls ──
@@ -2805,6 +3450,662 @@ document.getElementById('btn-survival').onclick=startSurvival;
 document.getElementById('lang-uk').onclick=()=>setLang('uk');
 document.getElementById('lang-ru').onclick=()=>setLang('ru');
 document.getElementById('lang-en').onclick=()=>setLang('en');
+
+// ── EDITOR ──
+const MAX_EDITOR_LEVELS=15;
+let editorLevels=readJSON('ms_editor_levels',[]);
+let editorCurrent=null; // {name,diff,waves:[{enemies:[{x,y,golden}]}]}
+let editorCurrentWave=0;
+let editorPlacingType='normal'; // 'normal','golden','erase'
+const EDITOR_GRID_COLS=10, EDITOR_GRID_ROWS=8, EDITOR_PLAY_H=0.8;
+let editorGridMode=localStorage.getItem('ms_editor_grid')!=='0';
+let editorTestMode=false;
+let editorTestWaveIdx=0;
+let editorTestEnemies=[];
+let editorTestBullets=[];
+let editorTestShip={x:0,y:0,hp:100,maxHp:100,shootCd:0};
+let editorTestFrame=0;
+let editorTestRAF=null;
+let editorTestResult=null;
+
+function saveEditorLevels(){localStorage.setItem('ms_editor_levels',JSON.stringify(editorLevels));}
+
+function openEditor(){
+  if(!menuDrawActive){menuDrawActive=true;menuDraw();}
+  showOnly('editor');
+  showEditorList();
+}
+
+function showEditorList(){
+  document.getElementById('editor-list-view').style.display='flex';
+  document.getElementById('editor-list-view').style.flexDirection='column';
+  document.getElementById('editor-list-view').style.alignItems='center';
+  document.getElementById('editor-create-view').style.display='none';
+  document.getElementById('editor-finish-view').style.display='none';
+  const slots=document.getElementById('editor-slots');
+  slots.innerHTML='';
+  editorLevels.forEach((lv,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;width:min(320px,90vw);';
+    row.innerHTML=`<span style="flex:1;color:#ddf;font-size:13px;">📋 ${lv.name} <span style="color:#668;font-size:11px;">${t('editorDiffShort')} ${lv.diff}/10 · ${lv.waves.length} ${t('editorWavesShort')}</span></span>`;
+
+    const editBtn=document.createElement('button');
+    editBtn.textContent='✏️';
+    editBtn.title='Редагувати';
+    editBtn.style.cssText='background:none;border:1px solid #7af;border-radius:6px;color:#7af;padding:4px 8px;cursor:pointer;font-size:14px;';
+    editBtn.onclick=()=>{
+      editorCurrent=JSON.parse(JSON.stringify(lv));
+      editorCurrentWave=0;
+      editorPlacingType='normal';
+      document.getElementById('editor-list-view').style.display='none';
+      document.getElementById('editor-create-view').style.display='flex';
+      document.getElementById('editor-create-view').style.flexDirection='column';
+      document.getElementById('editor-create-view').style.alignItems='center';
+      document.getElementById('editor-finish-view').style.display='none';
+      document.getElementById('editor-step-1').style.display='none';
+      document.getElementById('editor-step-2').style.display='block';
+      initEditorCanvas();
+      renderEditorCanvas();
+      fillEditorScriptUI();
+      editorAdvancedOpen=!!(editorCurrent&&editorCurrent.script);
+      syncEditorAdvancedUI();
+    };
+
+    const testBtn=document.createElement('button');
+    testBtn.textContent='▶️';
+    testBtn.title='Тестувати';
+    testBtn.style.cssText='background:none;border:1px solid #4f4;border-radius:6px;color:#4f4;padding:4px 8px;cursor:pointer;font-size:14px;';
+    testBtn.onclick=()=>{
+      editorCurrent=JSON.parse(JSON.stringify(lv));
+      editorCurrentWave=0;
+      startEditorTest('list');
+    };
+
+    const delBtn=document.createElement('button');
+    delBtn.textContent='🗑️';
+    delBtn.title='Видалити';
+    delBtn.style.cssText='background:none;border:1px solid #f66;border-radius:6px;color:#f66;padding:4px 8px;cursor:pointer;font-size:14px;';
+    delBtn.onclick=()=>{if(confirm(t('editorDelete')+' "'+lv.name+'"?')){editorLevels.splice(i,1);saveEditorLevels();showEditorList();}};
+
+    row.appendChild(editBtn);
+    row.appendChild(testBtn);
+    row.appendChild(delBtn);
+    slots.appendChild(row);
+  });
+  const newBtn=document.getElementById('editor-new-btn');
+  if(editorLevels.length>=MAX_EDITOR_LEVELS){
+    newBtn.className='mbtn locked';
+    newBtn.textContent=t('editorMax').replace('{n}',MAX_EDITOR_LEVELS);
+    newBtn.onclick=null;
+  } else {
+    newBtn.className='mbtn enabled';
+    newBtn.textContent=t('editorNew');
+    newBtn.onclick=startEditorCreate;
+  }
+}
+
+function startEditorCreate(){
+  editorCurrent=null;
+  editorCurrentWave=0;
+  document.getElementById('editor-name-input').value='';
+  document.getElementById('editor-diff-input').value='5';
+  document.getElementById('editor-waves-input').value='5';
+  document.getElementById('editor-list-view').style.display='none';
+  document.getElementById('editor-create-view').style.display='flex';
+  document.getElementById('editor-create-view').style.flexDirection='column';
+  document.getElementById('editor-create-view').style.alignItems='center';
+  document.getElementById('editor-finish-view').style.display='none';
+  document.getElementById('editor-step-1').style.display='block';
+  document.getElementById('editor-step-2').style.display='none';
+}
+
+document.getElementById('editor-step1-next').onclick=()=>{
+  const name=document.getElementById('editor-name-input').value.trim();
+  if(!name){alert(t('editorNeedName'));return;}
+  const diff=Math.min(10,Math.max(1,parseInt(document.getElementById('editor-diff-input').value)||5));
+  const waveCount=Math.min(50,Math.max(1,parseInt(document.getElementById('editor-waves-input').value)||5));
+  const waves=[];
+  for(let i=0;i<waveCount;i++) waves.push({enemies:[]});
+  editorCurrent={name,diff,waves,script:''};
+  editorCurrentWave=0;
+  editorPlacingType='normal';
+  document.getElementById('editor-step-1').style.display='none';
+  document.getElementById('editor-step-2').style.display='block';
+  initEditorCanvas();
+  renderEditorCanvas();
+  fillEditorScriptUI();
+  editorAdvancedOpen=false;
+  syncEditorAdvancedUI();
+};
+document.getElementById('editor-step1-back').onclick=showEditorList;
+
+function initEditorCanvas(){
+  const cv2=document.getElementById('editor-canvas');
+  const maxW=Math.min(window.innerWidth-32,380);
+  const maxH=Math.min(window.innerHeight*0.45,320);
+  cv2.width=maxW; cv2.height=maxH;
+  cv2.ontouchstart=cv2.onmousedown=editorCanvasClick;
+  updateEditorWaveLabel();
+  syncEditorGridBtn();
+}
+
+function updateEditorWaveLabel(){
+  document.getElementById('editor-wave-label').textContent=
+    t('editorWave').replace('{a}',editorCurrentWave+1).replace('{b}',editorCurrent.waves.length);
+}
+
+function snapEditorCell(rx,ry){
+  const cellW=1/EDITOR_GRID_COLS;
+  const cellH=EDITOR_PLAY_H/EDITOR_GRID_ROWS;
+  if(ry>=EDITOR_PLAY_H) return null;
+  const gx=Math.max(0,Math.min(EDITOR_GRID_COLS-1,Math.floor(rx/cellW)));
+  const gy=Math.max(0,Math.min(EDITOR_GRID_ROWS-1,Math.floor(ry/cellH)));
+  return {rx:(gx+0.5)*cellW, ry:(gy+0.5)*cellH, gx, gy};
+}
+
+function editorCanvasClick(ev){
+  ev.preventDefault();
+  const cv2=document.getElementById('editor-canvas');
+  const rect=cv2.getBoundingClientRect();
+  const clientX=ev.touches?ev.touches[0].clientX:ev.clientX;
+  const clientY=ev.touches?ev.touches[0].clientY:ev.clientY;
+  let rx=(clientX-rect.left)/rect.width;
+  let ry=(clientY-rect.top)/rect.height;
+  rx=Math.max(0,Math.min(1,rx));
+  ry=Math.max(0,Math.min(1,ry));
+  const wave=editorCurrent.waves[editorCurrentWave];
+  if(editorPlacingType==='erase'){
+    const px=rx*cv2.width, py=ry*cv2.height;
+    let best=-1,bestD=editorGridMode?28:20;
+    wave.enemies.forEach((e,i)=>{
+      const d=Math.hypot(e.rx*cv2.width-px,e.ry*cv2.height-py);
+      if(d<bestD){bestD=d;best=i;}
+    });
+    if(best>=0) wave.enemies.splice(best,1);
+  } else {
+    if(editorGridMode){
+      const cell=snapEditorCell(rx,ry);
+      if(!cell) return;
+      rx=cell.rx; ry=cell.ry;
+      const occupied=wave.enemies.some(e=>Math.abs(e.rx-rx)<0.001&&Math.abs(e.ry-ry)<0.001);
+      if(occupied) return;
+    }
+    wave.enemies.push({rx,ry,golden:editorPlacingType==='golden'});
+  }
+  renderEditorCanvas();
+}
+
+function renderEditorCanvas(){
+  const cv2=document.getElementById('editor-canvas');
+  const ctx2=cv2.getContext('2d');
+  const W2=cv2.width,H2=cv2.height;
+  ctx2.clearRect(0,0,W2,H2);
+  ctx2.fillStyle='#08081a';ctx2.fillRect(0,0,W2,H2);
+  if(editorGridMode){
+    const cellW=W2/EDITOR_GRID_COLS;
+    const cellH=(H2*EDITOR_PLAY_H)/EDITOR_GRID_ROWS;
+    ctx2.strokeStyle='rgba(122,170,255,0.22)';ctx2.lineWidth=1;
+    for(let c=0;c<=EDITOR_GRID_COLS;c++){
+      ctx2.beginPath();ctx2.moveTo(c*cellW,0);ctx2.lineTo(c*cellW,H2*EDITOR_PLAY_H);ctx2.stroke();
+    }
+    for(let r=0;r<=EDITOR_GRID_ROWS;r++){
+      ctx2.beginPath();ctx2.moveTo(0,r*cellH);ctx2.lineTo(W2,r*cellH);ctx2.stroke();
+    }
+  } else {
+    ctx2.strokeStyle='rgba(255,255,255,0.04)';ctx2.lineWidth=1;
+    for(let x=0;x<W2;x+=40){ctx2.beginPath();ctx2.moveTo(x,0);ctx2.lineTo(x,H2);ctx2.stroke();}
+    for(let y=0;y<H2;y+=40){ctx2.beginPath();ctx2.moveTo(0,y);ctx2.lineTo(W2,y);ctx2.stroke();}
+  }
+  // Ship zone hint
+  ctx2.fillStyle='rgba(100,180,255,0.04)';ctx2.fillRect(0,H2*0.8,W2,H2*0.2);
+  ctx2.fillStyle='rgba(100,180,255,0.2)';ctx2.font='11px monospace';ctx2.textAlign='center';
+  ctx2.fillText(t('editorPlayerZone'),W2/2,H2*0.92);
+  // Enemies
+  const wave=editorCurrent.waves[editorCurrentWave];
+  wave.enemies.forEach(e=>{
+    const ex=e.rx*W2, ey=e.ry*H2;
+    ctx2.save();ctx2.translate(ex,ey);
+    if(e.golden){
+      ctx2.fillStyle='#c8860a';
+      ctx2.beginPath();ctx2.moveTo(0,-13);ctx2.lineTo(-10,9);ctx2.lineTo(10,9);ctx2.closePath();ctx2.fill();
+      ctx2.fillStyle='#ffd700';
+      ctx2.beginPath();ctx2.moveTo(0,-10);ctx2.lineTo(-7,7);ctx2.lineTo(7,7);ctx2.closePath();ctx2.fill();
+    } else {
+      ctx2.fillStyle='#f4a';
+      ctx2.beginPath();ctx2.moveTo(0,-10);ctx2.lineTo(-8,8);ctx2.lineTo(8,8);ctx2.closePath();ctx2.fill();
+      ctx2.fillStyle='#f00';ctx2.beginPath();ctx2.arc(0,0,3,0,Math.PI*2);ctx2.fill();
+    }
+    ctx2.restore();
+  });
+  ctx2.textAlign='left';
+}
+
+// Type buttons
+['normal','golden','erase'].forEach(type=>{
+  const btn=document.getElementById('editor-type-'+type);
+  if(btn) btn.onclick=()=>{
+    editorPlacingType=type;
+    document.getElementById('editor-type-normal').classList.toggle('active',type==='normal');
+    document.getElementById('editor-type-golden').classList.toggle('active',type==='golden');
+    document.getElementById('editor-type-erase').classList.toggle('active',type==='erase');
+  };
+});
+function syncEditorGridBtn(){
+  const btn=document.getElementById('editor-grid-toggle');
+  if(!btn) return;
+  btn.classList.toggle('active',editorGridMode);
+  btn.textContent=editorGridMode?t('editorGridOn'):t('editorGridOff');
+}
+document.getElementById('editor-grid-toggle').onclick=()=>{
+  editorGridMode=!editorGridMode;
+  localStorage.setItem('ms_editor_grid',editorGridMode?'1':'0');
+  syncEditorGridBtn();
+  renderEditorCanvas();
+};
+
+document.getElementById('editor-prev-wave').onclick=()=>{
+  if(editorCurrentWave>0){editorCurrentWave--;updateEditorWaveLabel();renderEditorCanvas();}
+};
+document.getElementById('editor-next-wave').onclick=()=>{
+  if(editorCurrentWave<editorCurrent.waves.length-1){editorCurrentWave++;updateEditorWaveLabel();renderEditorCanvas();}
+};
+
+let editorAdvancedOpen=false;
+function syncEditorAdvancedUI(){
+  const box=document.getElementById('editor-script-box');
+  const btn=document.getElementById('editor-advanced-btn');
+  if(box) box.style.display=editorAdvancedOpen?'block':'none';
+  if(btn) btn.classList.toggle('active',editorAdvancedOpen);
+}
+document.getElementById('editor-advanced-btn').onclick=()=>{
+  editorAdvancedOpen=!editorAdvancedOpen;
+  syncEditorAdvancedUI();
+  if(editorAdvancedOpen) fillEditorScriptUI();
+};
+document.getElementById('editor-help-btn').onclick=()=>{
+  const help=document.getElementById('editor-syntax-help');
+  help.classList.add('open');
+  help.scrollTop=0;
+};
+document.getElementById('editor-help-close').onclick=()=>{
+  document.getElementById('editor-syntax-help').classList.remove('open');
+};
+document.getElementById('editor-test-btn').onclick=()=>startEditorTest('edit');
+document.getElementById('editor-finish-btn').onclick=()=>{
+  syncEditorScriptFromUI();
+  const parsed=parseEditorScript(editorCurrent.script,editorCurrent.waves.length);
+  if(!parsed.ok){
+    alert(parsed.code==='REWARD'?'Count Error: The Reward is too high':parsed.error);
+    return;
+  }
+  editorCurrent.parsed=parsed.data;
+  // Save level
+  editorLevels=editorLevels.filter(l=>l.name!==editorCurrent.name);
+  editorLevels.push({...editorCurrent});
+  if(editorLevels.length>MAX_EDITOR_LEVELS) editorLevels.shift();
+  saveEditorLevels();
+  // Show finish view
+  document.getElementById('editor-step-2').style.display='none';
+  document.getElementById('editor-finish-view').style.display='flex';
+  document.getElementById('editor-finish-view').style.flexDirection='column';
+  document.getElementById('editor-finish-view').style.alignItems='center';
+  const totalEnemies=editorCurrent.waves.reduce((s,w)=>s+w.enemies.length,0);
+  document.getElementById('editor-finish-info').textContent=
+    `"${editorCurrent.name}" · складність ${editorCurrent.diff}/10 · ${editorCurrent.waves.length} хвиль · ${totalEnemies} монстрів`;
+};
+
+const MAX_WAVE_REWARD=500;
+function stripScriptComment(line){
+  let inStr=null;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(inStr){
+      if(ch==='\\'){i++;continue;}
+      if(ch===inStr) inStr=null;
+      continue;
+    }
+    if(ch==='"'||ch==="'"){inStr=ch;continue;}
+    if(ch==='#') return line.slice(0,i);
+  }
+  return line;
+}
+function splitScriptArgs(inside){
+  const parts=[]; let cur=''; let inStr=null;
+  for(let i=0;i<inside.length;i++){
+    const ch=inside[i];
+    if(inStr){
+      if(ch==='\\'){cur+=ch+(inside[++i]||'');continue;}
+      cur+=ch;
+      if(ch===inStr) inStr=null;
+      continue;
+    }
+    if(ch==='"'||ch==="'"){inStr=ch;cur+=ch;continue;}
+    if(ch===','){parts.push(cur.trim());cur='';continue;}
+    cur+=ch;
+  }
+  if(cur.trim()) parts.push(cur.trim());
+  return parts;
+}
+function parseScriptValue(raw){
+  raw=String(raw||'').trim();
+  if((raw.startsWith('"')&&raw.endsWith('"'))||(raw.startsWith("'")&&raw.endsWith("'"))){
+    return raw.slice(1,-1).replace(/\\n/g,'\n').replace(/\\"/g,'"').replace(/\\'/g,"'");
+  }
+  if(/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
+  return raw;
+}
+function parseNamedArg(part){
+  const m=String(part).match(/^([A-Za-z_][\w]*)\s*[:=]\s*(.+)$/);
+  if(!m) return {positional:parseScriptValue(part)};
+  return {name:m[1].toLowerCase(), value:parseScriptValue(m[2])};
+}
+function collectAttackFields(raw){
+  const src=String(raw||'');
+  const get=(...keys)=>{
+    for(const key of keys){
+      const m=src.match(new RegExp('(?:^|[,\\s\\[\\](){}+])'+key+'\\s*[:=]\\s*("(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\'|-?\\d+(?:\\.\\d+)?)','i'));
+      if(m) return parseScriptValue(m[1]);
+    }
+    return undefined;
+  };
+  return {
+    chance:get('chance','ch','p'),
+    type:get('type','typ'),
+    c:get('c','count','n'),
+    d:get('d','dmg','damage','dmghp'),
+    t:get('t','monster','mob'),
+    wave:get('wave','w')
+  };
+}
+function normalizeCustomAttack(fields,lineNo){
+  const type=Number(fields.type);
+  if(!Number.isInteger(type)||type<0||type>3) return {ok:false,error:'Рядок '+lineNo+': type має бути 0–3'};
+  const chance=Number(fields.chance);
+  if(!Number.isFinite(chance)||chance<=0) return {ok:false,error:'Рядок '+lineNo+': chance має бути > 0'};
+  const c=fields.c==null?1:Number(fields.c);
+  if(!Number.isInteger(c)||c<1) return {ok:false,error:'Рядок '+lineNo+': c (кількість) має бути ≥ 1'};
+  const maxC=type===3?8:type===1?10:type===2?20:24;
+  if(c>maxC) return {ok:false,error:'Рядок '+lineNo+': занадто багато снарядів/монстрів (макс '+maxC+')'};
+  let d=fields.d==null?(type===3?100:type===1?30:7):Number(fields.d);
+  if(type===0||type===1){
+    if(!Number.isFinite(d)||d<1) return {ok:false,error:'Рядок '+lineNo+': d (урон) має бути ≥ 1'};
+    if(d>120) return {ok:false,error:'Рядок '+lineNo+': урон занадто великий (макс 120)'};
+  }
+  let t=fields.t==null?0:Number(fields.t);
+  if(type===2&&(!Number.isInteger(t)||(t!==0&&t!==1))) return {ok:false,error:'Рядок '+lineNo+': t має бути 0 (стрілун) або 1 (золотий)'};
+  const wave=fields.wave==null?null:Number(fields.wave);
+  return {ok:true,attack:{chance,type,c,d:type===3?100:d,t:type===2?t:0,wave}};
+}
+function ensureCustomBoss(data,wave,visual,extra){
+  extra=extra||{};
+  let boss=data.customBosses.find(cb=>cb.wave===wave);
+  if(!boss){
+    boss={wave,visual:visual||1,attacks:[],hp:extra.hp,name:extra.name,interval:extra.interval};
+    data.customBosses.push(boss);
+  }
+  if(visual) boss.visual=visual;
+  if(extra.hp!=null) boss.hp=extra.hp;
+  if(extra.name!=null) boss.name=extra.name;
+  if(extra.interval!=null) boss.interval=extra.interval;
+  return boss;
+}
+function extractCustomBossBlocks(src){
+  const blocks=[];
+  const re=/custom\s*\(\s*(?:"BOSSES"|'BOSSES'|BOSSES)\s*\)\s*:?\s*\{/ig;
+  let m;
+  const ranges=[];
+  while((m=re.exec(src))){
+    let depth=1,i=re.lastIndex,start=m.index;
+    while(i<src.length&&depth>0){
+      const ch=src[i++];
+      if(ch==='{') depth++;
+      else if(ch==='}') depth--;
+    }
+    ranges.push({start,end:i,body:src.slice(re.lastIndex,i-1)});
+  }
+  let cleaned=src;
+  for(let i=ranges.length-1;i>=0;i--){
+    const r=ranges[i];
+    blocks.push(r.body);
+    cleaned=cleaned.slice(0,r.start)+'\n'+cleaned.slice(r.end);
+  }
+  return {cleaned,blocks};
+}
+function parseCustomBossBlock(body,waveCount,data){
+  const compact=String(body||'');
+  const fields=collectAttackFields(compact);
+  let wave=fields.wave==null?null:Number(fields.wave);
+  let visual=null;
+  const vis=compact.match(/(?:visual|vialuse|values|look)\s*\(\s*(?:num\s*[:=]\s*)?(\d+)\s*\)/i)
+    ||compact.match(/(?:visual|vialuse|values|look|num)\s*[:=]\s*(\d+)/i);
+  if(vis) visual=Number(vis[1]);
+  const waveCall=compact.match(/\bwave\s*\(\s*(\d+)\s*\)/i);
+  if(waveCall) wave=Number(waveCall[1]);
+  const hpM=compact.match(/\bhp\s*[:=]?\s*\(?\s*(\d+)/i);
+  const nameM=compact.match(/\bname\s*[:=]\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/i);
+  const intM=compact.match(/\binterval\s*[:=]?\s*\(?\s*(\d+)/i);
+  if(wave==null) wave=1;
+  if(!Number.isInteger(wave)||wave<1||wave>waveCount) return {ok:false,error:'custom("BOSSES"): вкажи wave від 1 до '+waveCount};
+  if(visual!=null&&(!Number.isInteger(visual)||!BOSSES[visual])) return {ok:false,error:'custom("BOSSES"): visual має бути 1–7'};
+  const extra={};
+  if(hpM) extra.hp=Number(hpM[1]);
+  if(nameM) extra.name=parseScriptValue(nameM[1]);
+  if(intM) extra.interval=Number(intM[1]);
+  const boss=ensureCustomBoss(data,wave,visual||1,extra);
+  const attackRe=/attack\d*\s*\(([\s\S]*?)\)/ig;
+  let am;
+  let found=0;
+  while((am=attackRe.exec(compact))){
+    found++;
+    const parsed=normalizeCustomAttack(collectAttackFields(am[1]),'custom');
+    if(!parsed.ok) return parsed;
+    boss.attacks.push(parsed.attack);
+  }
+  if(!found) return {ok:false,error:'custom("BOSSES"): додай хоча б одну attack(...)'};
+  return {ok:true};
+}
+function parseEditorScript(text, waveCount){
+  const data={defaultReward:0,waveRewards:{},bosses:{},dialogs:[],customBosses:[]};
+  const src=String(text||'');
+  if(!src.trim()) return {ok:true,data};
+  const extracted=extractCustomBossBlocks(src);
+  for(const block of extracted.blocks){
+    const parsedBlock=parseCustomBossBlock(block,waveCount,data);
+    if(!parsedBlock.ok) return parsedBlock;
+  }
+  const lines=extracted.cleaned.split(/\r?\n/);
+  let currentCustom=data.customBosses.length?data.customBosses[data.customBosses.length-1]:null;
+  for(let i=0;i<lines.length;i++){
+    const lineNo=i+1;
+    const line=stripScriptComment(lines[i]).trim();
+    if(!line) continue;
+    const rewardEq=line.match(/^reward(?:\s*\(\s*wave\s*[:=]\s*(\d+)\s*\))?\s*=\s*(-?\d+)\s*$/i);
+    if(rewardEq){
+      const amount=Number(rewardEq[2]);
+      if(!Number.isFinite(amount)||amount<0) return {ok:false,error:'Рядок '+lineNo+': нагорода має бути числом ≥ 0'};
+      if(amount>MAX_WAVE_REWARD) return {ok:false,code:'REWARD',error:'Count Error: The Reward is too high'};
+      if(rewardEq[1]){
+        const w=Number(rewardEq[1]);
+        if(w<1||w>waveCount) return {ok:false,error:'Рядок '+lineNo+': хвиля '+w+' не існує'};
+        data.waveRewards[w]=amount;
+      }else data.defaultReward=amount;
+      continue;
+    }
+    const call=line.match(/^([A-Za-z_][\w]*)\s*\((.*)\)\s*$/);
+    if(!call) return {ok:false,error:'Рядок '+lineNo+': незрозуміла команда'};
+    const name=call[1].toLowerCase();
+    const args=splitScriptArgs(call[2]).map(parseNamedArg);
+    if(name==='customboss'||name==='custom'||name==='vialuse'||name==='visual'){
+      let wave=null,visual=null,hp=null,bossName=null,interval=null;
+      args.forEach(a=>{
+        const key=a.name||'';
+        const val=a.value!=null?a.value:a.positional;
+        if(key==='wave'||key==='w') wave=Number(val);
+        else if(key==='visual'||key==='vialuse'||key==='num'||key==='look'||key==='id') visual=Number(val);
+        else if(key==='hp') hp=Number(val);
+        else if(key==='name') bossName=String(val);
+        else if(key==='interval') interval=Number(val);
+        else if(a.positional!=null){
+          if(wave==null&&Number.isInteger(Number(val))) wave=Number(val);
+          else if(visual==null&&Number.isInteger(Number(val))) visual=Number(val);
+        }
+      });
+      if(name==='vialuse'||name==='visual'){
+        if(!currentCustom) return {ok:false,error:'Рядок '+lineNo+': спочатку customboss(wave:N)'};
+        if(!Number.isInteger(visual)||!BOSSES[visual]) return {ok:false,error:'Рядок '+lineNo+': visual має бути 1–7'};
+        currentCustom.visual=visual;
+        continue;
+      }
+      if(!Number.isInteger(wave)||wave<1||wave>waveCount) return {ok:false,error:'Рядок '+lineNo+': customboss — невірний wave'};
+      if(visual!=null&&(!Number.isInteger(visual)||!BOSSES[visual])) return {ok:false,error:'Рядок '+lineNo+': visual має бути 1–7'};
+      currentCustom=ensureCustomBoss(data,wave,visual||1,{hp,name:bossName,interval});
+      continue;
+    }
+    if(name==='attack'||name==='bossattack'||/^attack\d+$/.test(name)){
+      const fields=collectAttackFields(call[2]);
+      args.forEach(a=>{
+        if(a.name&&fields[a.name]==null) fields[a.name]=a.value;
+        if(a.name==='wave') fields.wave=a.value;
+      });
+      const parsedAtk=normalizeCustomAttack(fields,lineNo);
+      if(!parsedAtk.ok) return parsedAtk;
+      let target=currentCustom;
+      if(parsedAtk.attack.wave!=null){
+        const w=parsedAtk.attack.wave;
+        if(!Number.isInteger(w)||w<1||w>waveCount) return {ok:false,error:'Рядок '+lineNo+': attack — невірний wave'};
+        target=ensureCustomBoss(data,w,1,{});
+        currentCustom=target;
+      }
+      if(!target) return {ok:false,error:'Рядок '+lineNo+': спочатку customboss(wave:N)'};
+      target.attacks.push(parsedAtk.attack);
+      continue;
+    }
+    if(name==='spawnboss'){
+      let wave=null,nums=[],pos=0;
+      args.forEach(a=>{
+        if(a.name==='wave') wave=Number(a.value);
+        else if(a.name==='num'||a.name==='boss'||a.name==='id') nums.push(Number(a.value));
+        else if(a.positional!=null){
+          if(pos===0&&wave==null) wave=Number(a.positional);
+          else nums.push(Number(a.positional));
+          pos++;
+        }
+      });
+      if(!Number.isInteger(wave)||wave<1||wave>waveCount) return {ok:false,error:'Рядок '+lineNo+': spawnboss — невірний wave'};
+      if(nums.length===0) return {ok:false,error:'Рядок '+lineNo+': spawnboss — вкажи num боса'};
+      if(nums.length>2) return {ok:false,error:'Рядок '+lineNo+': spawnboss — максимум 2 боси одночасно'};
+      for(const n of nums){
+        if(!Number.isInteger(n)||!BOSSES[n]) return {ok:false,error:'Рядок '+lineNo+': spawnboss — боса №'+n+' немає'};
+      }
+      data.bosses[wave]=nums.length===1?nums[0]:nums;
+      continue;
+    }
+    if(name==='dialog'){
+      let wave=null,text=null,seconds=3,pos=0;
+      args.forEach(a=>{
+        if(a.name==='wave') wave=Number(a.value);
+        else if(a.name==='text'||a.name==='msg') text=String(a.value);
+        else if(a.name==='time'||a.name==='sec'||a.name==='seconds') seconds=Number(a.value);
+        else if(a.positional!=null){
+          if(typeof a.positional==='number' && wave==null && pos===0){wave=a.positional;pos++;}
+          else if(typeof a.positional==='string' && text==null){text=a.positional;pos++;}
+          else if(typeof a.positional==='number'){seconds=a.positional;pos++;}
+          else {if(text==null) text=String(a.positional); pos++;}
+        }
+      });
+      if(!Number.isInteger(wave)||wave<1||wave>waveCount) return {ok:false,error:'Рядок '+lineNo+': dialog — невірний wave'};
+      if(text==null||!String(text).trim()) return {ok:false,error:'Рядок '+lineNo+': dialog потребує текст у лапках'};
+      if(!Number.isFinite(seconds)||seconds<=0) return {ok:false,error:'Рядок '+lineNo+': час діалогу має бути > 0'};
+      data.dialogs.push({wave,text:String(text),seconds});
+      continue;
+    }
+    if(name==='reward') return {ok:false,error:'Рядок '+lineNo+': пиши reward = число'};
+    return {ok:false,error:'Рядок '+lineNo+': невідома команда "'+call[1]+'"'};
+  }
+  return {ok:true,data};
+}
+function wrapDialogText(text,x,y,maxW){
+  const words=String(text||'').split(/\s+/);
+  const lines=[]; let cur='';
+  words.forEach(w=>{
+    const next=cur?cur+' '+w:w;
+    if(cx.measureText(next).width>maxW && cur){lines.push(cur);cur=w;}
+    else cur=next;
+  });
+  if(cur) lines.push(cur);
+  const fs=Math.max(13,Math.min(16,W*0.038));
+  const shown=lines.slice(0,4);
+  shown.forEach((ln,i)=>cx.fillText(ln,x,y+(i-(shown.length-1)/2)* (fs+4)));
+}
+function syncEditorScriptFromUI(){
+  const ta=document.getElementById('editor-script');
+  if(editorCurrent&&ta) editorCurrent.script=ta.value;
+}
+function fillEditorScriptUI(){
+  const ta=document.getElementById('editor-script');
+  if(ta) ta.value=(editorCurrent&&editorCurrent.script)||'';
+}
+function startEditorTest(returnTo){
+  if(!editorCurrent||!editorCurrent.waves||!editorCurrent.waves.length){
+    alert(t('editorNeedLevel'));
+    return;
+  }
+  const step2=document.getElementById('editor-step-2');
+  if(step2&&step2.style.display==='block') syncEditorScriptFromUI();
+  const parsed=parseEditorScript(editorCurrent.script,editorCurrent.waves.length);
+  if(!parsed.ok){
+    alert(parsed.code==='REWARD'?'Count Error: The Reward is too high':parsed.error);
+    return;
+  }
+  const hasMonsters=editorCurrent.waves.some(w=>w.enemies&&w.enemies.length);
+  const hasBoss=Object.keys(parsed.data.bosses).length>0||(parsed.data.customBosses&&parsed.data.customBosses.length>0);
+  if(!hasMonsters&&!hasBoss){
+    alert(t('editorNeedContent'));
+    return;
+  }
+  editorCurrent.parsed=parsed.data;
+  const level=JSON.parse(JSON.stringify(editorCurrent));
+  beginRun({mode:'custom',level,returnTo:returnTo||'edit'});
+}
+
+function resumeEditorEdit(){
+  if(!editorCurrent){openEditor();return;}
+  if(!menuDrawActive){menuDrawActive=true;menuDraw();}
+  showOnly('editor');
+  document.getElementById('editor-list-view').style.display='none';
+  document.getElementById('editor-finish-view').style.display='none';
+  document.getElementById('editor-create-view').style.display='flex';
+  document.getElementById('editor-create-view').style.flexDirection='column';
+  document.getElementById('editor-create-view').style.alignItems='center';
+  document.getElementById('editor-step-1').style.display='none';
+  document.getElementById('editor-step-2').style.display='block';
+  initEditorCanvas();
+  updateEditorWaveLabel();
+  renderEditorCanvas();
+  fillEditorScriptUI();
+  editorAdvancedOpen=!!(editorCurrent&&editorCurrent.script);
+  syncEditorAdvancedUI();
+}
+
+document.getElementById('editor-test-again-btn').onclick=()=>startEditorTest('finish');
+document.getElementById('editor-edit-back-btn').onclick=()=>{
+  document.getElementById('editor-finish-view').style.display='none';
+  document.getElementById('editor-create-view').style.display='flex';
+  document.getElementById('editor-create-view').style.flexDirection='column';
+  document.getElementById('editor-create-view').style.alignItems='center';
+  document.getElementById('editor-step-2').style.display='block';
+  editorCurrentWave=0;updateEditorWaveLabel();renderEditorCanvas();
+  fillEditorScriptUI();
+  editorAdvancedOpen=!!(editorCurrent&&editorCurrent.script);
+  syncEditorAdvancedUI();
+};
+document.getElementById('editor-menu-back-btn').onclick=()=>showMenu();
+document.getElementById('editor-close').onclick=()=>showMenu();
+document.querySelectorAll('#editor-lang-btns .lbtn').forEach(btn=>{
+  btn.onclick=()=>setLang(btn.getAttribute('data-edlang'));
+});
+
+// ── ADMIN: прибрано систему заявок ──
 applyLang();
 applyControlMode();
 showOnly('menu');
