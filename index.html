@@ -408,7 +408,7 @@ attack(chance:10, type:3, c:1)</pre>
 <script>
 const cv = document.getElementById('gc');
 const cx = cv.getContext('2d');
-const VERSION = 'v1.2';
+const VERSION = 'v1.2.2';
 const LANGS={
 uk:{sub:'Вертикальний шутер',play:'▶ Грати',ach:'🏆 Досягнення',shop:'🛒 Магазин',bosses:'👾 Боси',events:'🎯 Події',admin:'⚙ Адмін',lock5:'Відкриється на XP-рівні 5',lock3:'Відкриється на XP-рівні 3',lock10:'Відкриється на XP-рівні 10',lock7:'Відкриється на XP-рівні 7',level:'Рівень',next:'Наст. рівень',max:'Макс. рівень!',tokens:'Токени',back:'← Назад',gameover:'КІНЕЦЬ ГРИ',returnMenu:'Повернутись у меню',shopTitle:'🛒 Магазин',ships:'✈ Літак',helpers:'🤖 Помічники',items:'⚔ Предмети',bossesTitle:'👾 Боси',bossInfo:'Оберіть боса. Відкриті боси підсвічені.',eventsTitle:'🎯 Події',survivalBtn:'⚡ Виживання',survivalDesc:'1HP. Падають вогняні мечі та кулі. Кожну секунду +50💎. Швидкість зростає.',achTitle:'🏆 Досягнення',achInfo:'Тут будуть досягнення.<br>Незабаром...',adminTitle:'⚙ Адмін-панель',password:'Пароль',enterPassword:'Введіть пароль',login:'Увійти',giveTokens:'Видати токенів',give:'Видати 💎',setLevel:'Встановити рівень XP',set:'Встановити рівень',wrong:'Неправильний пароль.',allowed:'Доступ дозволено.',enterInt:'Введіть ціле число більше нуля.',given:'Видано 💎',levelRange:'Введіть рівень від 1 до 250.',setLevelMsg:'Встановлено XP-рівень',chosen:'✓ Обраний',choose:'Обрати',buy:'Купити за 💎',need:'Потрібно 💎',free:'Безкоштовно',bossBack:'Переможіть попереднього боса',survived:'Вижито секунд',settings:'Налаштування',controls:'Керування',touch:'Дотики',joystick:'Джойстик'},
 ru:{sub:'Вертикальный шутер',play:'▶ Играть',ach:'🏆 Достижения',shop:'🛒 Магазин',bosses:'👾 Боссы',events:'🎯 События',admin:'⚙ Админ',lock5:'Откроется на XP-уровне 5',lock3:'Откроется на XP-уровне 3',lock10:'Откроется на XP-уровне 10',lock7:'Откроется на XP-уровне 7',level:'Уровень',next:'След. уровень',max:'Макс. уровень!',tokens:'Токены',back:'← Назад',gameover:'КОНЕЦ ИГРЫ',returnMenu:'Вернуться в меню',shopTitle:'🛒 Магазин',ships:'✈ Самолёт',helpers:'🤖 Помощники',items:'⚔ Предметы',bossesTitle:'👾 Боссы',bossInfo:'Выберите босса. Открытые боссы подсвечены.',eventsTitle:'🎯 События',survivalBtn:'⚡ Выживание',survivalDesc:'1HP. Падают огненные мечи и пули. Каждую секунду +50💎. Скорость растёт.',achTitle:'🏆 Достижения',achInfo:'Здесь будут достижения.<br>Скоро...',adminTitle:'⚙ Админ-панель',password:'Пароль',enterPassword:'Введите пароль',login:'Войти',giveTokens:'Выдать токенов',give:'Выдать 💎',setLevel:'Установить уровень XP',set:'Установить уровень',wrong:'Неправильный пароль.',allowed:'Доступ разрешён.',enterInt:'Введите целое число больше нуля.',given:'Выдано 💎',levelRange:'Введите уровень от 1 до 250.',setLevelMsg:'Установлен XP-уровень',chosen:'✓ Выбран',choose:'Выбрать',buy:'Купить за 💎',need:'Нужно 💎',free:'Бесплатно',bossBack:'Победите предыдущего босса',survived:'Выжито секунд',settings:'Настройки',controls:'Управление',touch:'Касания',joystick:'Джойстик'},
@@ -857,7 +857,7 @@ function startSurvival(){
   menuDrawActive=false;paused=false;hideAll();
   survivalMode=true;
   customLevelMode=false;customLevel=null;
-  bossMode=false;boss=null;currentBossDef=null;bossAttackTimer=0;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  clearBosses();
   currentShipDef=SHIPS[activeShip]||SHIPS.blue;
   score=0;sessionXP=0;sessionTokens=0;
   playerHP=1;playerMaxHP=1; // 1HP in survival
@@ -1395,7 +1395,11 @@ function damageBoss(amount,color='#f66',target){
       refreshBossRef();
       return;
     }
-    if(!isSummon&&defeatedDef&&defeatedDef.id===7){
+    if(isSummon){
+      refreshBossRef();
+      return;
+    }
+    if(defeatedDef&&defeatedDef.id===7){
       activeBosses=[];
       refreshBossRef();
       winBoss(defeatedDef);
@@ -1585,11 +1589,15 @@ const BOSSES={
 function livingBosses(){
   if(!Array.isArray(activeBosses)) activeBosses=[];
   activeBosses=activeBosses.filter(b=>b&&b.hp>0);
-  return activeBosses;
+  return activeBosses.slice();
+}
+function primaryBoss(){
+  const live=livingBosses();
+  return live.find(b=>b&&!b.summoned)||live[0]||null;
 }
 function refreshBossRef(){
   const live=livingBosses();
-  boss=live[0]||null;
+  boss=live.find(b=>b&&!b.summoned)||live[0]||null;
   currentBossDef=boss?(boss.def||BOSSES[boss.id]||null):null;
   bossMode=live.length>0;
   if(boss){
@@ -1620,7 +1628,7 @@ function makeBossInstance(def,slot,total){
     phase:(slot||0)*2.1,
     slot:slot||0,total:total||1,
     def,
-    attackTimer:0,
+    attackTimer:def.id===7?780:0,
     lasers:[],laserTimer:0,laserDmgTimer:0,
     laserDamage:0,laserTick:1,laserMode:'normal',
     nextIsLaser:false,
@@ -1711,8 +1719,11 @@ function summonBossAdds(host,ids){
     if(!def) return;
     const add=makeBossInstance(def,i+1,ids.length+1);
     add.summoned=true;
+    add.name=(lang==='en'?'Summon ':'Виклик ')+def.name;
     add.y=148;
+    add.x=ids.length===1?W*0.72:(i===0?W*0.22:W*0.78);
     add.phase=host.phase+(i+1)*1.7;
+    add.attackTimer=Math.floor((def.attackInterval||240)*0.45);
     activeBosses.push(add);
     planNextBossAttack(add);
   });
@@ -1907,6 +1918,7 @@ function update(){
   // ── Boss movement and attacks ──
   const liveBosses=livingBosses();
   for(const b of liveBosses){
+    if(!activeBosses.includes(b)||b.hp<=0) continue;
     b.phase+=0.018;
     const summons=liveBosses.filter(x=>x.summoned);
     const hasAdds=summons.length>0;
@@ -1935,7 +1947,7 @@ function update(){
         const laserHitWidth=b.laserMode==='mega'?28:14;
         const beams=b.lasers||[];
         if(beams.some(offset=>Math.abs(ship.x-(b.x+offset))<laserHitWidth)){
-          playerHP-=5;
+          playerHP-=(b.laserDamage||5);
           spawnParts(ship.x,ship.y,'#f66',4);
           if(playerHP<=0){playerHP=0;endGame();return;}
         }
@@ -2325,7 +2337,7 @@ function update(){
       if(b.t!=='p'&&b.t!=='h'&&b.t!=='r'&&b.t!=='eh'&&b.t!=='sp'&&b.t!=='fi'&&b.t!=='pv'&&b.t!=='tx') continue;
       let hit=null;
       for(const ent of hitBosses){
-        if(Math.hypot(b.x-ent.x,b.y-ent.y)<=42){hit=ent;break;}
+        if(Math.hypot(b.x-ent.x,b.y-ent.y)<=(ent.id>=6?54:42)){hit=ent;break;}
       }
       if(!hit) continue;
       bullets.splice(i,1);
@@ -2698,7 +2710,7 @@ function drawBoss(b){
   }
   cx.restore();
   // Знак оклику якщо наступна атака — лазер
-  if(bossNextIsLaser&&bossLaserTimer===0){
+  if(b.nextIsLaser&&!(b.laserTimer>0)){
     const pulse=0.65+0.35*Math.abs(Math.sin(frame*0.12));
     cx.save();
     cx.globalAlpha=pulse;
@@ -2712,17 +2724,19 @@ function drawBoss(b){
   }
 }
 function drawBossLasers(){
-  if(!boss||bossLaserTimer<=0) return;
-  const mega=bossLaserMode==='mega';
-  const color=mega?'rgba(255,70,220,0.9)':'rgba(255,70,100,0.82)';
-  const glow=mega?'rgba(255,160,240,0.28)':'rgba(255,170,190,0.2)';
-  bossLasers.forEach(offset=>{
-    const x=boss.x+offset;
-    cx.strokeStyle=color;cx.lineWidth=mega?14:5;
-    cx.beginPath();cx.moveTo(x,boss.y+28);cx.lineTo(x,H);cx.stroke();
-    cx.strokeStyle=glow;cx.lineWidth=mega?34:18;
-    cx.beginPath();cx.moveTo(x,boss.y+28);cx.lineTo(x,H);cx.stroke();
-  });
+  for(const b of livingBosses()){
+    if(!b||!(b.laserTimer>0)||!(b.lasers&&b.lasers.length)) continue;
+    const mega=b.laserMode==='mega';
+    const color=mega?'rgba(255,70,220,0.9)':'rgba(255,70,100,0.82)';
+    const glow=mega?'rgba(255,160,240,0.28)':'rgba(255,170,190,0.2)';
+    b.lasers.forEach(offset=>{
+      const x=b.x+offset;
+      cx.strokeStyle=color;cx.lineWidth=mega?14:5;
+      cx.beginPath();cx.moveTo(x,b.y+28);cx.lineTo(x,H);cx.stroke();
+      cx.strokeStyle=glow;cx.lineWidth=mega?34:18;
+      cx.beginPath();cx.moveTo(x,b.y+28);cx.lineTo(x,H);cx.stroke();
+    });
+  }
   cx.lineWidth=1;
 }
 function drawLaser(){
@@ -2815,10 +2829,10 @@ function drawHUD(){
   cx.fillText('XP: +'+sessionXP,W-14,fs+26);
 
   if(bossMode){
-    const liveBossesHUD=livingBosses();
+    const liveBossesHUD=livingBosses().slice().sort((a,c)=>(a.summoned?1:0)-(c.summoned?1:0));
     liveBossesHUD.forEach((b,bi)=>{
       const bossBarW=Math.min(300,W*0.64),bossBarH=9;
-      const bossBarX=(W-bossBarW)/2,bossBarY=fs+40+bi*28;
+      const bossBarX=(W-bossBarW)/2,bossBarY=fs+40+bi*22;
       const bossPct=Math.max(0,b.hp/b.maxHp);
       cx.fillStyle='rgba(255,255,255,0.12)';cx.fillRect(bossBarX,bossBarY,bossBarW,bossBarH);
       cx.fillStyle=bi===0?'#f44':'#f90';cx.fillRect(bossBarX,bossBarY,bossBarW*bossPct,bossBarH);
@@ -2873,7 +2887,7 @@ function draw(){
   cx.globalAlpha=1;
 
   if(laserActive||laserCooldown>0) drawLaser();
-  if(bossLaserTimer>0) drawBossLasers();
+  drawBossLasers();
   livingBosses().forEach(b=>drawBoss(b));
   drawItemShots();
 
@@ -3142,7 +3156,7 @@ function beginRun(opts){
   if(animId) cancelAnimationFrame(animId);
   menuDrawActive=false; paused=false; hideAll();
   survivalMode=false;
-  bossMode=false;boss=null;currentBossDef=null;bossAttackTimer=0;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  clearBosses();
   customLevelMode=opts.mode==='custom';
   customLevel=customLevelMode?opts.level:null;
   customWaveIdx=0; customWaveDelay=0; customDialog=null; customDialogQueue=[]; customWaveRewarded=false;
@@ -3262,7 +3276,7 @@ function winBoss(defeated){
   saveAll();
   gameRunId++;
   gameActive=false;menuDrawActive=false;paused=false;
-  bossMode=false;boss=null;currentBossDef=null;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  clearBosses();
   document.getElementById('pause-btn').style.display='none';
   joyBase.style.display='none';
   if(animId) cancelAnimationFrame(animId);
@@ -3287,7 +3301,7 @@ function endGame(){
   gameRunId++;
   gameActive=false;menuDrawActive=false;
   paused=false;survivalMode=false;
-  bossMode=false;boss=null;currentBossDef=null;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  clearBosses();
   document.getElementById('pause-btn').style.display='none';
   joyBase.style.display='none';
   if(animId) cancelAnimationFrame(animId);
@@ -3315,8 +3329,9 @@ function showMenu(){
   gameActive=false;survivalMode=false;
   customLevelMode=false;
   paused=false;
-  bossMode=false;boss=null;currentBossDef=null;bossLasers=[];bossLaserTimer=0;bossLaserDmgTimer=0;
+  clearBosses();
   itemShots=[];itemTimer=0;
+  enemies=[];bullets=[];particles=[];blackHole=null;
   setGameOverAction(showMenu,t('returnMenu'));
   document.getElementById('pause-btn').style.display='none';
   joyBase.style.display='none';
@@ -3935,6 +3950,10 @@ function parseEditorScript(text, waveCount){
     if(!call) return {ok:false,error:'Рядок '+lineNo+': незрозуміла команда'};
     const name=call[1].toLowerCase();
     const args=splitScriptArgs(call[2]).map(parseNamedArg);
+    if(name==='custom'){
+      const raw=String(call[2]||'').toLowerCase();
+      if(raw.includes('bosses')) continue;
+    }
     if(name==='customboss'||name==='custom'||name==='vialuse'||name==='visual'){
       let wave=null,visual=null,hp=null,bossName=null,interval=null;
       args.forEach(a=>{
